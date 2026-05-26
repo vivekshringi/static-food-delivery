@@ -1,0 +1,19 @@
+<svg width="900" height="640" viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Butter chicken illustration">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F7C6A2"/>
+      <stop offset="1" stop-color="#E56A58"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="640" rx="30" fill="url(#bg)"/>
+  <ellipse cx="450" cy="390" rx="290" ry="140" fill="#5E2A23"/>
+  <ellipse cx="450" cy="372" rx="260" ry="108" fill="#E48C43"/>
+  <circle cx="350" cy="350" r="40" fill="#D15D34"/>
+  <circle cx="430" cy="338" r="36" fill="#C9562F"/>
+  <circle cx="500" cy="352" r="42" fill="#C24F2C"/>
+  <circle cx="570" cy="340" r="35" fill="#D46036"/>
+  <circle cx="618" cy="365" r="30" fill="#C8522E"/>
+  <path d="M300 315c18-24 38-38 64-42" stroke="#FFF0A5" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M525 313c30-35 72-44 104-24" stroke="#FFF0A5" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <text x="450" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" fill="#5B211A">Butter Chicken</text>
+</svg>

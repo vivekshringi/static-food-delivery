@@ -1,0 +1,64 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Spice Anker logo">
+  <defs>
+    <linearGradient id="ringText" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A4D2B"/>
+      <stop offset="1" stop-color="#6E3C22"/>
+    </linearGradient>
+    <linearGradient id="petal1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2D84D2"/>
+      <stop offset="1" stop-color="#5FA8FF"/>
+    </linearGradient>
+    <linearGradient id="petal2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F14100"/>
+      <stop offset="1" stop-color="#FF6A35"/>
+    </linearGradient>
+    <linearGradient id="petal3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14A378"/>
+      <stop offset="1" stop-color="#37D7AA"/>
+    </linearGradient>
+    <linearGradient id="petal4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B715D1"/>
+      <stop offset="1" stop-color="#E14BFB"/>
+    </linearGradient>
+    <linearGradient id="petal5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0C9AB4"/>
+      <stop offset="1" stop-color="#26C3E0"/>
+    </linearGradient>
+    <linearGradient id="petal6" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B50942"/>
+      <stop offset="1" stop-color="#DF2D66"/>
+    </linearGradient>
+    <linearGradient id="anchor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1AA2B8"/>
+      <stop offset="1" stop-color="#0A5F75"/>
+    </linearGradient>
+    <path id="upperArc" d="M 180 360 A 332 332 0 0 1 844 360"/>
+    <path id="lowerArc" d="M 844 664 A 332 332 0 0 1 180 664"/>
+  </defs>
+
+  <circle cx="512" cy="512" r="476" fill="none"/>
+
+  <text font-family="Georgia, serif" font-size="96" fill="url(#ringText)" letter-spacing="2">
+    <textPath href="#upperArc" startOffset="50%" text-anchor="middle">Spice Anker</textPath>
+  </text>
+  <text font-family="Georgia, serif" font-size="88" fill="url(#ringText)" letter-spacing="2">
+    <textPath href="#lowerArc" startOffset="50%" text-anchor="middle">authentisch indisch</textPath>
+  </text>
+
+  <circle cx="162" cy="510" r="16" fill="#8A4D2B"/>
+  <circle cx="862" cy="510" r="16" fill="#8A4D2B"/>
+
+  <g transform="translate(512 500)">
+    <path d="M -198 -58 C -158 -145 -45 -163 0 -103 C -60 -22 -120 -12 -198 -58 Z" fill="url(#petal1)" stroke="#0A0A0A" stroke-width="4"/>
+    <path d="M -112 -96 C -95 -188 25 -230 74 -176 C 34 -62 -28 -16 -112 -96 Z" fill="url(#petal2)" stroke="#0A0A0A" stroke-width="4"/>
+    <path d="M -8 -124 C 24 -205 105 -206 128 -124 C 82 -32 26 -22 -8 -124 Z" fill="url(#petal3)" stroke="#0A0A0A" stroke-width="4"/>
+    <path d="M 108 -96 C 132 -174 244 -175 276 -92 C 190 -15 150 -15 108 -96 Z" fill="url(#petal4)" stroke="#0A0A0A" stroke-width="4"/>
+    <path d="M 170 -6 C 260 -42 318 4 334 48 C 274 96 206 96 146 40 Z" fill="url(#petal5)" stroke="#0A0A0A" stroke-width="4"/>
+    <path d="M -322 48 C -265 -11 -198 -16 -142 40 C -202 95 -264 94 -322 48 Z" fill="url(#petal6)" stroke="#0A0A0A" stroke-width="4"/>
+
+    <path d="M -30 0 L 30 0 L 26 246 C 26 307 79 350 139 340 C 180 334 204 305 222 268 L 188 266 L 256 192 L 270 284 L 236 282 C 210 362 142 416 64 422 C 15 425 -24 404 -40 368 C -56 404 -95 425 -144 422 C -222 416 -290 362 -316 282 L -350 284 L -336 192 L -268 266 L -302 268 C -284 305 -260 334 -219 340 C -159 350 -106 307 -106 246 L -110 0 Z" fill="url(#anchor)" stroke="#0A0A0A" stroke-width="6"/>
+
+    <rect x="-93" y="-20" width="186" height="24" rx="12" fill="#C8B28A" stroke="#0A0A0A" stroke-width="4"/>
+    <text x="0" y="-62" text-anchor="middle" font-family="Georgia, serif" font-size="70" fill="#0A0A0A">Om</text>
+  </g>
+</svg>

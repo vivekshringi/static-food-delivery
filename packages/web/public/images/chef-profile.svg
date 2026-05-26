@@ -1,0 +1,24 @@
+<svg width="800" height="920" viewBox="0 0 800 920" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Chef portrait illustration">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F7E5C8"/>
+      <stop offset="1" stop-color="#E7C48F"/>
+    </linearGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E9EDF0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="920" rx="34" fill="url(#bg)"/>
+  <circle cx="400" cy="350" r="210" fill="#F3B788"/>
+  <ellipse cx="400" cy="670" rx="260" ry="200" fill="url(#coat)"/>
+  <path d="M290 210c20-88 200-98 232 0 8 28 3 72-6 94-27 12-204 10-229-2-8-30-7-63 3-92z" fill="#1F1F25"/>
+  <ellipse cx="360" cy="330" rx="16" ry="13" fill="#2A2020"/>
+  <ellipse cx="448" cy="330" rx="16" ry="13" fill="#2A2020"/>
+  <path d="M366 404c20 20 46 27 70 0" stroke="#8A4E38" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M240 232c52-85 266-87 320 0l-30 46H270l-30-46z" fill="#FFFFFF"/>
+  <circle cx="330" cy="590" r="12" fill="#C8CDD2"/>
+  <circle cx="330" cy="648" r="12" fill="#C8CDD2"/>
+  <circle cx="330" cy="706" r="12" fill="#C8CDD2"/>
+  <text x="400" y="860" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" fill="#5A3D2A">Chef Arjun</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg width="900" height="640" viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Masala dosa illustration">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EADCB3"/>
+      <stop offset="1" stop-color="#C8A35D"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="640" rx="30" fill="url(#bg)"/>
+  <ellipse cx="460" cy="390" rx="300" ry="140" fill="#4D443A"/>
+  <path d="M260 410L560 270c46-21 91 10 95 52 3 31-14 61-40 76L336 530c-37 18-80-3-91-42-10-35 5-63 15-78z" fill="#D08739"/>
+  <path d="M300 445l240-111" stroke="#A65F23" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="650" cy="350" r="42" fill="#D56F34"/>
+  <circle cx="650" cy="350" r="24" fill="#F2B660"/>
+  <circle cx="720" cy="410" r="42" fill="#77A25F"/>
+  <circle cx="720" cy="410" r="24" fill="#B6D69D"/>
+  <text x="450" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" fill="#4A2E16">Masala Dosa</text>
+</svg>

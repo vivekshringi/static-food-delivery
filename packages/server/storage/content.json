@@ -1,0 +1,29 @@
+{
+  "restaurantName": "Spice Anker",
+  "logoUrl": "/images/spice-anker-logo.png",
+  "chefName": "Chef Sachin Tawde",
+  "chefBio": "Chef Sachin kombiniert regionale Zutaten mit klassischen nord- und sudindischen Rezepturen.",
+  "chefImageUrl": "/images/chef-profile.svg",
+  "cuisine": "Authentische indische Kuche",
+  "description": "Spice Anker verbindet traditionelle Gewurze mit moderner Prasentation und einem warmen, urbanen Ambiente.",
+  "address": "Wendenstraße 197 20537 Hamburg T 040/410 995 598 M 0176/476 480 78",
+  "timing": "Mo. - Do. 1 1 :00 - 21:00 Uhr Fr. 12:00 - 21:00 Uhr Sa. So. & Feiertage: 12:00 - 21:00 Uhr",
+  "dishImages": [
+    "/images/dish-biryani.svg",
+    "/images/dish-butter-chicken.svg",
+    "/images/dish-dosa.svg"
+  ],
+  "offers": [
+    "Mittwoch Tandoori Night: 20% auf alle Tandoori-Platten",
+    "Family Sunday Brunch mit Live-Chaat-Station"
+  ],
+  "social": {
+    "instagram": "https://instagram.com/rangmahal.muc",
+    "facebook": "https://facebook.com/rangmahal.muc",
+    "x": "https://x.com/rangmahal_muc"
+  },
+  "delivery": {
+    "wolt": "https://wolt.com",
+    "lieferando": "https://www.lieferando.de"
+  }
+}

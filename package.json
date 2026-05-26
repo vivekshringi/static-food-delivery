@@ -1,0 +1,16 @@
+{
+  "name": "restaurant-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm run dev -w @restaurant/server\" \"npm run dev -w @restaurant/web\"",
+    "build": "npm run build -w @restaurant/web",
+    "start": "npm run start -w @restaurant/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

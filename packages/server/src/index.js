@@ -17,26 +17,32 @@ const app = express();
 const port = process.env.PORT || 4000;
 const adminTokenHash = process.env.ADMIN_TOKEN_HASH || hashToken(process.env.ADMIN_TOKEN || "demo-admin-token");
 
-const storageDir = path.resolve(__dirname, "../storage");
+const storageDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(__dirname, "../storage");
 const contentFilePath = path.join(storageDir, "content.json");
 const menuFilePath = path.join(storageDir, "menu.pdf");
+const webDistDir = path.resolve(__dirname, "../../web/dist");
 
 const defaultContent = {
-  restaurantName: "Rang Mahal",
+  restaurantName: "Spice Anker",
   logoUrl: "/images/spice-anker-logo.png",
-  chefName: "Chef Arjun Malhotra",
+  chefName: "Chef Sachin",
   chefBio:
-    "Chef Arjun kombiniert regionale Zutaten mit klassischen nord- und sudindischen Rezepturen.",
-  chefImageUrl: "/images/chef-profile.svg",
+    "Koch Sachin ist ein ehemaliger Seemann mit langjähriger Erfahrung in der authentischen indischen Küche. Mit seiner Leidenschaft für traditionelle Aromen und seiner Fähigkeit, köstliche Gerichte zuzubereiten, bringt er Disziplin, Hingabe und hohe Qualitätsansprüche in die Küche. In seiner Freizeit ist er ein begeisterter Cricket-Fan.",
+  chefImageUrl: "/images/chef-profile.jpeg",
   cuisine: "Authentische indische Kuche",
   description:
-    "Rang Mahal verbindet traditionelle Gewurze mit moderner Prasentation und einem warmen, urbanen Ambiente.",
-  address: "Rosenstrasse 18, 80331 Munchen",
-  timing: "Mo-So: 11:30 - 14:30 und 17:30 - 23:00",
+    "Willkommen in unserem indischen Restaurant in Hamburg, wo authentische Aromen auf herzliche Gastfreundschaft treffen. Wir servieren köstliche, frisch zubereitete Gerichte, inspiriert von Indiens reicher kulinarischer Kultur, und bieten gleichzeitig Speisen an, die den deutschen Geschmack und die Vorlieben berücksichtigen. Von aromatischen Currys und Tandoori-Spezialitäten bis hin zu ausgewogenen, wohltuenden Gerichten verbindet unsere Speisekarte Tradition, Qualität und ein modernes kulinarisches Erlebnis",
+  address: "Wendenstraße 197\n20537 Hamburg",
+  phone: "040/410 995 598",
+  mobile: "0176/476 480 78",
+  timing: "Mo. - Do. 11:00 - 21:00 Uhr\nFr. 12:00 - 21:00 Uhr\nSa. So. & Feiertage: 12:00 - 21:00 Uhr",
   dishImages: [
-    "/images/dish-biryani.svg",
-    "/images/dish-butter-chicken.svg",
-    "/images/dish-dosa.svg"
+    "/images/lamb-curry.jpeg",
+    "/images/tofu.jpeg",
+    "/images/mutter-paneer.jpeg",
+    "/images/paneer.jpeg"
   ],
   offers: [
     "Mittwoch Tandoori Night: 20% auf alle Tandoori-Platten",
@@ -86,6 +92,8 @@ function normalizeContent(payload = {}) {
     cuisine: String(payload.cuisine || defaultContent.cuisine).trim(),
     description: String(payload.description || defaultContent.description).trim(),
     address: String(payload.address || defaultContent.address).trim(),
+    phone: String(payload.phone || defaultContent.phone).trim(),
+    mobile: String(payload.mobile || defaultContent.mobile).trim(),
     timing: String(payload.timing || defaultContent.timing).trim(),
     dishImages: Array.isArray(payload.dishImages)
       ? payload.dishImages.map((item) => String(item).trim()).filter(Boolean)
@@ -166,6 +174,7 @@ ensureStorage();
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+app.use(express.static(webDistDir));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
@@ -221,6 +230,18 @@ app.get("/menu.pdf", (_req, res) => {
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", "inline; filename=menu.pdf");
   return res.sendFile(menuFilePath);
+});
+
+app.get("*", (req, res) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  if (fs.existsSync(path.join(webDistDir, "index.html"))) {
+    return res.sendFile(path.join(webDistDir, "index.html"));
+  }
+
+  return res.status(503).send("Web build not found. Run npm run build first.");
 });
 
 app.use((err, _req, res, _next) => {

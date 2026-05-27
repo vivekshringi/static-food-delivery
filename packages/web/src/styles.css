@@ -139,7 +139,7 @@ h1 {
 }
 
 .hero p {
-  max-width: 65ch;
+  max-width: 100%;
   color: var(--subtle);
   margin: 0;
 }
@@ -176,7 +176,7 @@ h1 {
 .grid-details {
   display: grid;
   gap: 0.9rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 50% minmax(0, 1fr);
 }
 
 .media-grid {
@@ -381,13 +381,28 @@ button:disabled {
   gap: 0.5rem;
 }
 
-.social-links a {
-  text-decoration: none;
-  color: #fff;
+.social-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   background: linear-gradient(120deg, #14322c, #1f6a5f);
-  border-radius: 999px;
-  padding: 0.45rem 0.75rem;
-  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-decoration: none;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.social-icon-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(20, 50, 44, 0.25);
+}
+
+.social-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
 
 .delivery-availability {
@@ -401,21 +416,28 @@ button:disabled {
   margin-top: 0.8rem;
 }
 
-.delivery-pill {
+.delivery-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   text-decoration: none;
-  color: #fff;
-  padding: 0.55rem 0.85rem;
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  transition: transform 180ms ease, border-color 180ms ease;
 }
 
-.delivery-pill.wolt {
-  background: #009de0;
+.delivery-icon-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 0, 0, 0.25);
 }
 
-.delivery-pill.lieferando {
-  background: #ff8000;
+.delivery-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
 }
 
 .cookie-banner {
@@ -529,7 +551,7 @@ button:disabled {
 
 @media (max-width: 980px) {
   .grid-details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 50% minmax(0, 1fr);
   }
 
   .media-grid {

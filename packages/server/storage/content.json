@@ -1,17 +1,20 @@
 {
   "restaurantName": "Spice Anker",
   "logoUrl": "/images/spice-anker-logo.png",
-  "chefName": "Chef Sachin Tawde",
-  "chefBio": "Chef Sachin kombiniert regionale Zutaten mit klassischen nord- und sudindischen Rezepturen.",
-  "chefImageUrl": "/images/chef-profile.svg",
+  "chefName": "Chef Sachin",
+  "chefBio": "Koch Sachin ist ein ehemaliger Seemann mit langjähriger Erfahrung in der authentischen indischen Küche. Mit seiner Leidenschaft für traditionelle Aromen und seiner Fähigkeit, köstliche Gerichte zuzubereiten, bringt er Disziplin, Hingabe und hohe Qualitätsansprüche in die Küche. In seiner Freizeit ist er ein begeisterter Cricket-Fan.",
+  "chefImageUrl": "/images/chef-profile.jpeg",
   "cuisine": "Authentische indische Kuche",
-  "description": "Spice Anker verbindet traditionelle Gewurze mit moderner Prasentation und einem warmen, urbanen Ambiente.",
-  "address": "Wendenstraße 197 20537 Hamburg T 040/410 995 598 M 0176/476 480 78",
-  "timing": "Mo. - Do. 1 1 :00 - 21:00 Uhr Fr. 12:00 - 21:00 Uhr Sa. So. & Feiertage: 12:00 - 21:00 Uhr",
+  "description": "Willkommen in unserem indischen Restaurant in Hamburg, wo authentische Aromen auf herzliche Gastfreundschaft treffen. Wir servieren köstliche, frisch zubereitete Gerichte, inspiriert von Indiens reicher kulinarischer Kultur, und bieten gleichzeitig Speisen an, die den deutschen Geschmack und die Vorlieben berücksichtigen. Von aromatischen Currys und Tandoori-Spezialitäten bis hin zu ausgewogenen, wohltuenden Gerichten verbindet unsere Speisekarte Tradition, Qualität und ein modernes kulinarisches Erlebnis",
+  "address": "Wendenstraße 197\n20537 Hamburg",
+  "phone": "040/410 995 598",
+  "mobile": "0176/476 480 78",
+  "timing": "Mo. - Do. 11:00 - 21:00 Uhr\nFr. 12:00 - 21:00 Uhr\nSa. So. & Feiertage: 12:00 - 21:00 Uhr",
   "dishImages": [
-    "/images/dish-biryani.svg",
-    "/images/dish-butter-chicken.svg",
-    "/images/dish-dosa.svg"
+     "/images/lamb-curry.jpeg",
+    "/images/tofu.jpeg",
+    "/images/mutter-paneer.jpeg",
+    "/images/paneer.jpeg"
   ],
   "offers": [
     "Mittwoch Tandoori Night: 20% auf alle Tandoori-Platten",

@@ -110,45 +110,26 @@ function HomePage({ content }) {
         </div>
       </div>
 
-      <section className="media-grid">
-        <article className="panel chef-profile">
-          <h2>Chef Profil</h2>
-          <div className="chef-content">
-            <img
-              src={content.chefImageUrl || "/images/chef-profile.svg"}
-              alt={`Profilbild von ${content.chefName}`}
-              className="chef-image"
-            />
-            <div>
-              <h3>{content.chefName}</h3>
-              <p>{content.chefBio || "Unser Chef bringt jahrzehntelange Erfahrung in moderner indischer Kuche mit."}</p>
-            </div>
-          </div>
-        </article>
-
-        <article className="panel dishes-gallery">
+      <section className="panel dishes-showcase">
+        <div className="dishes-head">
           <h2>Signature Dishes</h2>
-          <div className="dish-grid">
-            {dishImages.length ? (
-              dishImages.map((imageUrl, index) => (
-                <img key={`${imageUrl}-${index}`} src={imageUrl} alt={`Dish ${index + 1}`} className="dish-image" />
-              ))
-            ) : (
-              <p>Derzeit sind keine Dish-Bilder hinterlegt.</p>
-            )}
-          </div>
-        </article>
+          <p>Unsere beliebtesten Gerichte, frisch serviert und mit viel Geschmack.</p>
+        </div>
+        <div className="dish-grid signature-grid">
+          {dishImages.length ? (
+            dishImages.map((imageUrl, index) => (
+              <figure className="dish-card" key={`${imageUrl}-${index}`}>
+                <img src={imageUrl} alt={`Dish ${index + 1}`} className="dish-image" />
+                <figcaption>Signature {index + 1}</figcaption>
+              </figure>
+            ))
+          ) : (
+            <p>Derzeit sind keine Dish-Bilder hinterlegt.</p>
+          )}
+        </div>
       </section>
 
       <div className="grid-details">
-        <article className="panel">
-          <h2>Chef</h2>
-          <p>{content.chefName}</p>
-        </article>
-        <article className="panel">
-          <h2>Kuche</h2>
-          <p>{content.cuisine}</p>
-        </article>
         <article className="panel">
           <h2>Adresse</h2>
           <p>{content.address}</p>
@@ -179,13 +160,19 @@ function HomePage({ content }) {
         <p>Bestelle unsere Gerichte bequem uber Wolt und Lieferando.</p>
         <div className="delivery-links">
           {delivery.wolt ? (
-            <a href={delivery.wolt} target="_blank" rel="noreferrer" className="delivery-pill wolt">
-              Wolt
+            <a href={delivery.wolt} target="_blank" rel="noreferrer" className="delivery-icon-link" title="Wolt">
+              <img src="/icons/wolt.svg" alt="Wolt" className="delivery-icon" />
             </a>
           ) : null}
           {delivery.lieferando ? (
-            <a href={delivery.lieferando} target="_blank" rel="noreferrer" className="delivery-pill lieferando">
-              Lieferando
+            <a
+              href={delivery.lieferando}
+              target="_blank"
+              rel="noreferrer"
+              className="delivery-icon-link"
+              title="Lieferando"
+            >
+              <img src="/icons/lieferando.svg" alt="Lieferando" className="delivery-icon" />
             </a>
           ) : null}
         </div>
@@ -196,7 +183,6 @@ function HomePage({ content }) {
 
 function SiteFooter({ content }) {
   const social = content.social || {};
-  const delivery = content.delivery || {};
 
   return (
     <footer className="site-footer">
@@ -204,33 +190,18 @@ function SiteFooter({ content }) {
         <p>Folge uns fur neue Offers und Events:</p>
         <div className="social-links">
           {social.instagram ? (
-            <a href={social.instagram} target="_blank" rel="noreferrer">
-              Instagram
+            <a href={social.instagram} target="_blank" rel="noreferrer" className="social-icon-link" title="Instagram">
+              <img src="/icons/instagram.svg" alt="Instagram" className="social-icon" />
             </a>
           ) : null}
           {social.facebook ? (
-            <a href={social.facebook} target="_blank" rel="noreferrer">
-              Facebook
+            <a href={social.facebook} target="_blank" rel="noreferrer" className="social-icon-link" title="Facebook">
+              <img src="/icons/facebook.svg" alt="Facebook" className="social-icon" />
             </a>
           ) : null}
           {social.x ? (
-            <a href={social.x} target="_blank" rel="noreferrer">
-              X
-            </a>
-          ) : null}
-        </div>
-      </div>
-      <div className="footer-column">
-        <p>Lieferung:</p>
-        <div className="social-links">
-          {delivery.wolt ? (
-            <a href={delivery.wolt} target="_blank" rel="noreferrer">
-              Wolt
-            </a>
-          ) : null}
-          {delivery.lieferando ? (
-            <a href={delivery.lieferando} target="_blank" rel="noreferrer">
-              Lieferando
+            <a href={social.x} target="_blank" rel="noreferrer" className="social-icon-link" title="X">
+              <img src="/icons/x.svg" alt="X" className="social-icon" />
             </a>
           ) : null}
         </div>

@@ -1,32 +1,30 @@
 {
   "restaurantName": "Spice Anker",
   "logoUrl": "/images/spice-anker-logo.png",
-  "chefName": "Chef Sachin",
-  "chefBio": "Koch Sachin ist ein ehemaliger Seemann mit langjähriger Erfahrung in der authentischen indischen Küche. Mit seiner Leidenschaft für traditionelle Aromen und seiner Fähigkeit, köstliche Gerichte zuzubereiten, bringt er Disziplin, Hingabe und hohe Qualitätsansprüche in die Küche. In seiner Freizeit ist er ein begeisterter Cricket-Fan.",
-  "chefImageUrl": "/images/chef-profile.jpeg",
   "cuisine": "Authentische indische Kuche",
   "description": "Willkommen in unserem indischen Restaurant in Hamburg, wo authentische Aromen auf herzliche Gastfreundschaft treffen. Wir servieren köstliche, frisch zubereitete Gerichte, inspiriert von Indiens reicher kulinarischer Kultur, und bieten gleichzeitig Speisen an, die den deutschen Geschmack und die Vorlieben berücksichtigen. Von aromatischen Currys und Tandoori-Spezialitäten bis hin zu ausgewogenen, wohltuenden Gerichten verbindet unsere Speisekarte Tradition, Qualität und ein modernes kulinarisches Erlebnis",
   "address": "Wendenstraße 197\n20537 Hamburg",
-  "phone": "040/410 995 598",
+  "phone": "040/410 99 598",
   "mobile": "0176/476 480 78",
   "timing": "Mo. - Do. 11:00 - 21:00 Uhr\nFr. 12:00 - 21:00 Uhr\nSa. So. & Feiertage: 12:00 - 21:00 Uhr",
   "dishImages": [
-     "/images/lamb-curry.jpeg",
-    "/images/tofu.jpeg",
-    "/images/mutter-paneer.jpeg",
-    "/images/paneer.jpeg"
+    "/images/mango-sauce.png",
+    "/images/biryani.png",
+    "/images/masala-chai.png"
   ],
   "offers": [
-    "Mittwoch Tandoori Night: 20% auf alle Tandoori-Platten",
-    "Family Sunday Brunch mit Live-Chaat-Station"
+    "Eröffnungsrabatt: 15% Eröffnungsrabatt auf Speisen bis zum 10.06.26"
   ],
   "social": {
-    "instagram": "https://instagram.com/rangmahal.muc",
-    "facebook": "https://facebook.com/rangmahal.muc",
-    "x": "https://x.com/rangmahal_muc"
+    "instagram": "https://instagram.com",
+    "facebook": "https://facebook.com"
   },
   "delivery": {
     "wolt": "https://wolt.com",
+    "uberEats": "https://www.ubereats.com/de",
     "lieferando": "https://www.lieferando.de"
+  },
+  "drinks": {
+    "fritzKola": "https://www.fritz-kola.com/"
   }
 }

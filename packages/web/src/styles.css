@@ -199,6 +199,28 @@ h1 {
   color: var(--subtle);
 }
 
+.address-text {
+  white-space: pre-wrap;
+}
+
+.phone-links {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.phone-links a {
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.phone-links a:hover {
+  text-decoration: underline;
+}
+
 .chef-content {
   display: grid;
   grid-template-columns: 190px 1fr;
@@ -377,31 +399,28 @@ button:disabled {
 }
 
 .social-links {
-  display: flex;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.6rem;
+  width: 100%;
 }
 
 .social-icon-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: linear-gradient(120deg, #14322c, #1f6a5f);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: block;
+  width: 100%;
   text-decoration: none;
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  line-height: 0;
+  transition: transform 180ms ease;
 }
 
 .social-icon-link:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(20, 50, 44, 0.25);
 }
 
 .social-icon {
-  width: 22px;
-  height: 22px;
+  display: block;
+  width: 100%;
+  height: 46px;
   object-fit: contain;
 }
 
@@ -410,33 +429,75 @@ button:disabled {
 }
 
 .delivery-links {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 0.6rem;
   margin-top: 0.8rem;
+  width: 100%;
+}
+
+.delivery-links > a {
+  width: 100%;
 }
 
 .delivery-icon-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  line-height: 0;
+  transition: transform 180ms ease;
+}
+
+.delivery-icon-link:hover {
+  transform: translateY(-1px);
+}
+
+.delivery-icon {
+  display: block;
+  width: 100%;
+  height: 46px;
+  object-fit: contain;
+}
+
+.delivery-text-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
+  min-width: 0;
   height: 52px;
+  padding: 0 0.9rem;
   border-radius: 12px;
   text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #111;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.12);
   transition: transform 180ms ease, border-color 180ms ease;
 }
 
-.delivery-icon-link:hover {
+.delivery-text-link:hover {
   transform: translateY(-1px);
   border-color: rgba(0, 0, 0, 0.25);
 }
 
-.delivery-icon {
-  width: 30px;
-  height: 30px;
+.delivery-logo-link {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  text-decoration: none;
+  line-height: 0;
+  transition: transform 180ms ease;
+}
+
+.delivery-logo-link:hover {
+  transform: translateY(-1px);
+}
+
+.drinks-logo {
+  display: block;
+  width: 100%;
+  height: 56px;
   object-fit: contain;
 }
 

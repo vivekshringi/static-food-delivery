@@ -2,6 +2,39 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 const ADMIN_TOKEN_KEY = "adminTokenSessionV1";
+const ABSOLUTE_URL_PATTERN = /^(?:[a-z]+:)?\/\//i;
+
+function resolveImageUrl(url, fallbackUrl) {
+  const candidate = String(url || "").trim() || String(fallbackUrl || "").trim();
+
+  if (!candidate) {
+    return "";
+  }
+
+  if (ABSOLUTE_URL_PATTERN.test(candidate) || candidate.startsWith("data:") || candidate.startsWith("blob:")) {
+    return candidate;
+  }
+
+  const normalized = candidate.startsWith("/") ? candidate.slice(1) : candidate;
+  return `${import.meta.env.BASE_URL}${normalized}`;
+}
+
+function SafeImage({ src, fallbackSrc, ...props }) {
+  const resolvedFallback = useMemo(() => resolveImageUrl(fallbackSrc, fallbackSrc), [fallbackSrc]);
+  const [resolvedSrc, setResolvedSrc] = useState(() => resolveImageUrl(src, fallbackSrc));
+
+  useEffect(() => {
+    setResolvedSrc(resolveImageUrl(src, fallbackSrc));
+  }, [src, fallbackSrc]);
+
+  function handleError() {
+    if (resolvedFallback && resolvedSrc !== resolvedFallback) {
+      setResolvedSrc(resolvedFallback);
+    }
+  }
+
+  return <img {...props} src={resolvedSrc} onError={handleError} />;
+}
 
 const initialFormState = {
   restaurantName: "",
@@ -15,11 +48,13 @@ const initialFormState = {
   timing: "",
   offersText: "",
   dishImagesText: "",
+  dishCaptionsText: "",
   instagram: "",
   facebook: "",
-  x: "",
   wolt: "",
-  lieferando: ""
+  uberEats: "",
+  lieferando: "",
+  fritzKola: ""
 };
 
 function App() {
@@ -53,8 +88,9 @@ function App() {
     <div className="site-shell">
       <header className="topbar">
         <Link className="brand" to="/">
-          <img
+          <SafeImage
             src={content?.logoUrl || "/images/spice-anker-logo.png"}
+            fallbackSrc="/images/spice-anker-logo.png"
             alt="Spice Anker Logo"
             className="brand-logo"
           />
@@ -66,7 +102,6 @@ function App() {
               Home
             </NavLink>
             <NavLink to="/menu">Menu</NavLink>
-            <NavLink to="/admin">Admin</NavLink>
           </nav>
         </div>
       </header>
@@ -94,12 +129,19 @@ function App() {
 
 function HomePage({ content }) {
   const dishImages = Array.isArray(content.dishImages) ? content.dishImages : [];
+  const dishCaptions = Array.isArray(content.dishCaptions) ? content.dishCaptions : [];
   const delivery = content.delivery || {};
+  const drinks = content.drinks || {};
 
   return (
     <section className="page page-home">
       <div className="hero">
-        <img src={content.logoUrl || "/images/spice-anker-logo.png"} alt="Logo" className="hero-logo" />
+        <SafeImage
+          src={content.logoUrl || "/images/spice-anker-logo.png"}
+          fallbackSrc="/images/spice-anker-logo.png"
+          alt="Logo"
+          className="hero-logo"
+        />
         <p className="eyebrow">Contemporary Indian Kitchen</p>
         <h1>{content.restaurantName}</h1>
         <p>{content.description}</p>
@@ -119,8 +161,13 @@ function HomePage({ content }) {
           {dishImages.length ? (
             dishImages.map((imageUrl, index) => (
               <figure className="dish-card" key={`${imageUrl}-${index}`}>
-                <img src={imageUrl} alt={`Dish ${index + 1}`} className="dish-image" />
-                <figcaption>Signature {index + 1}</figcaption>
+                <SafeImage
+                  src={imageUrl}
+                  fallbackSrc="/images/mango-sauce.png"
+                  alt={`Dish ${index + 1}`}
+                  className="dish-image"
+                />
+                <figcaption>{dishCaptions[index] || `Signature ${index + 1}`}</figcaption>
               </figure>
             ))
           ) : (
@@ -132,11 +179,21 @@ function HomePage({ content }) {
       <div className="grid-details">
         <article className="panel">
           <h2>Adresse</h2>
-          <p>{content.address}</p>
+          <p className="address-text">{content.address}</p>
+          {(content.phone || content.mobile) && (
+            <div className="phone-links">
+              {content.phone ? (
+                <a href={`tel:${content.phone.replace(/\s/g, "")}`}>Telefon: {content.phone}</a>
+              ) : null}
+              {content.mobile ? (
+                <a href={`tel:${content.mobile.replace(/\s/g, "")}`}>Mobil: {content.mobile}</a>
+              ) : null}
+            </div>
+          )}
         </article>
         <article className="panel">
           <h2>Offnungszeiten</h2>
-          <p>{content.timing}</p>
+          <p className="address-text">{content.timing}</p>
         </article>
       </div>
 
@@ -157,11 +214,27 @@ function HomePage({ content }) {
 
       <section className="delivery-availability panel">
         <h2>Jetzt auch bei Lieferdiensten</h2>
-        <p>Bestelle unsere Gerichte bequem uber Wolt und Lieferando.</p>
+        <p>Bestelle unsere Gerichte bequem uber Wolt, Uber Eats und Lieferando.</p>
         <div className="delivery-links">
           {delivery.wolt ? (
             <a href={delivery.wolt} target="_blank" rel="noreferrer" className="delivery-icon-link" title="Wolt">
-              <img src="/icons/wolt.svg" alt="Wolt" className="delivery-icon" />
+              <SafeImage src="/icons/wolt.png" fallbackSrc="/icons/wolt.png" alt="Wolt" className="delivery-icon" />
+            </a>
+          ) : null}
+          {delivery.uberEats ? (
+            <a
+              href={delivery.uberEats}
+              target="_blank"
+              rel="noreferrer"
+              className="delivery-icon-link"
+              title="Uber Eats"
+            >
+              <SafeImage
+                src="/icons/ubereats.png"
+                fallbackSrc="/icons/ubereats.png"
+                alt="Uber Eats"
+                className="delivery-icon"
+              />
             </a>
           ) : null}
           {delivery.lieferando ? (
@@ -172,10 +245,36 @@ function HomePage({ content }) {
               className="delivery-icon-link"
               title="Lieferando"
             >
-              <img src="/icons/lieferando.svg" alt="Lieferando" className="delivery-icon" />
+              <SafeImage
+                src="/icons/lieferando.png"
+                fallbackSrc="/icons/lieferando.png"
+                alt="Lieferando"
+                className="delivery-icon"
+              />
             </a>
           ) : null}
         </div>
+      </section>
+
+      <section className="panel drinks-partner">
+        <h2>Unser Getraenkepartner</h2>
+        <p>Fritz-Kola ist unser Getraenkepartner und in Hamburg besonders beliebt.</p>
+        {drinks.fritzKola ? (
+          <a
+            href={drinks.fritzKola}
+            target="_blank"
+            rel="noreferrer"
+            className="delivery-logo-link"
+            title="Fritz-Kola"
+          >
+            <SafeImage
+              src="/icons/fritz-kola.png"
+              fallbackSrc="/icons/fritz-kola.png"
+              alt="Fritz-Kola"
+              className="drinks-logo"
+            />
+          </a>
+        ) : null}
       </section>
     </section>
   );
@@ -191,17 +290,22 @@ function SiteFooter({ content }) {
         <div className="social-links">
           {social.instagram ? (
             <a href={social.instagram} target="_blank" rel="noreferrer" className="social-icon-link" title="Instagram">
-              <img src="/icons/instagram.svg" alt="Instagram" className="social-icon" />
+              <SafeImage
+                src="/icons/instagram.png"
+                fallbackSrc="/icons/instagram.png"
+                alt="Instagram"
+                className="social-icon"
+              />
             </a>
           ) : null}
           {social.facebook ? (
             <a href={social.facebook} target="_blank" rel="noreferrer" className="social-icon-link" title="Facebook">
-              <img src="/icons/facebook.svg" alt="Facebook" className="social-icon" />
-            </a>
-          ) : null}
-          {social.x ? (
-            <a href={social.x} target="_blank" rel="noreferrer" className="social-icon-link" title="X">
-              <img src="/icons/x.svg" alt="X" className="social-icon" />
+              <SafeImage
+                src="/icons/facebook.png"
+                fallbackSrc="/icons/facebook.png"
+                alt="Facebook"
+                className="social-icon"
+              />
             </a>
           ) : null}
         </div>
@@ -371,11 +475,13 @@ function AdminEditPage({ content, onUpdated }) {
       timing: content.timing || "",
       offersText: Array.isArray(content.offers) ? content.offers.join("\n") : "",
       dishImagesText: Array.isArray(content.dishImages) ? content.dishImages.join("\n") : "",
+      dishCaptionsText: Array.isArray(content.dishCaptions) ? content.dishCaptions.join("\n") : "",
       instagram: content.social?.instagram || "",
       facebook: content.social?.facebook || "",
-      x: content.social?.x || "",
       wolt: content.delivery?.wolt || "",
-      lieferando: content.delivery?.lieferando || ""
+      uberEats: content.delivery?.uberEats || "",
+      lieferando: content.delivery?.lieferando || "",
+      fritzKola: content.drinks?.fritzKola || ""
     });
   }, [content]);
 
@@ -395,6 +501,15 @@ function AdminEditPage({ content, onUpdated }) {
         .map((line) => line.trim())
         .filter(Boolean),
     [formState.dishImagesText]
+  );
+
+  const parsedDishCaptions = useMemo(
+    () =>
+      formState.dishCaptionsText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [formState.dishCaptionsText]
   );
 
   function updateField(event) {
@@ -426,15 +541,19 @@ function AdminEditPage({ content, onUpdated }) {
           address: formState.address,
           timing: formState.timing,
           dishImages: parsedDishImages,
+          dishCaptions: parsedDishCaptions,
           offers: parsedOffers,
           social: {
             instagram: formState.instagram,
-            facebook: formState.facebook,
-            x: formState.x
+            facebook: formState.facebook
           },
           delivery: {
             wolt: formState.wolt,
+            uberEats: formState.uberEats,
             lieferando: formState.lieferando
+          },
+          drinks: {
+            fritzKola: formState.fritzKola
           }
         })
       });
@@ -581,20 +700,32 @@ function AdminEditPage({ content, onUpdated }) {
           rows={4}
         />
 
+        <label htmlFor="dishCaptionsText">Dish Captions (eine Zeile pro Bild, gleiche Reihenfolge)</label>
+        <textarea
+          id="dishCaptionsText"
+          name="dishCaptionsText"
+          value={formState.dishCaptionsText}
+          onChange={updateField}
+          rows={4}
+        />
+
         <label htmlFor="instagram">Instagram URL</label>
         <input id="instagram" name="instagram" value={formState.instagram} onChange={updateField} />
 
         <label htmlFor="facebook">Facebook URL</label>
         <input id="facebook" name="facebook" value={formState.facebook} onChange={updateField} />
 
-        <label htmlFor="x">X URL</label>
-        <input id="x" name="x" value={formState.x} onChange={updateField} />
-
         <label htmlFor="wolt">Wolt URL</label>
         <input id="wolt" name="wolt" value={formState.wolt} onChange={updateField} />
 
+        <label htmlFor="uberEats">Uber Eats URL</label>
+        <input id="uberEats" name="uberEats" value={formState.uberEats} onChange={updateField} />
+
         <label htmlFor="lieferando">Lieferando URL</label>
         <input id="lieferando" name="lieferando" value={formState.lieferando} onChange={updateField} />
+
+        <label htmlFor="fritzKola">Fritz-Kola URL</label>
+        <input id="fritzKola" name="fritzKola" value={formState.fritzKola} onChange={updateField} />
 
         <button type="submit" disabled={saving}>
           Inhalte speichern

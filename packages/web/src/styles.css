@@ -203,6 +203,31 @@ h1 {
   white-space: pre-wrap;
 }
 
+.map-card {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.map-card iframe {
+  width: 100%;
+  min-height: 240px;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.map-link {
+  width: fit-content;
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.map-link:hover {
+  text-decoration: underline;
+}
+
 .phone-links {
   display: grid;
   gap: 0.4rem;

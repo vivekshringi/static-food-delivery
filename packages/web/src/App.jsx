@@ -4,6 +4,19 @@ import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-route
 const ADMIN_TOKEN_KEY = "adminTokenSessionV1";
 const ABSOLUTE_URL_PATTERN = /^(?:[a-z]+:)?\/\//i;
 
+function buildGoogleMapsLocationQuery(address) {
+  return String(address || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function buildGoogleMapsEmbedUrl(address) {
+  const query = buildGoogleMapsLocationQuery(address);
+  return query ? `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed` : "";
+}
+
 function resolveImageUrl(url, fallbackUrl) {
   const candidate = String(url || "").trim() || String(fallbackUrl || "").trim();
 
@@ -132,6 +145,8 @@ function HomePage({ content }) {
   const dishCaptions = Array.isArray(content.dishCaptions) ? content.dishCaptions : [];
   const delivery = content.delivery || {};
   const drinks = content.drinks || {};
+  const googleMapsLocationQuery = buildGoogleMapsLocationQuery(content.address);
+  const googleMapsEmbedUrl = buildGoogleMapsEmbedUrl(content.address);
 
   return (
     <section className="page page-home">
@@ -180,6 +195,25 @@ function HomePage({ content }) {
         <article className="panel">
           <h2>Adresse</h2>
           <p className="address-text">{content.address}</p>
+          {googleMapsEmbedUrl ? (
+            <div className="map-card">
+              <iframe
+                title="Google Maps Standort"
+                src={googleMapsEmbedUrl}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+              <a
+                className="map-link"
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleMapsLocationQuery)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                In Google Maps öffnen
+              </a>
+            </div>
+          ) : null}
           {(content.phone || content.mobile) && (
             <div className="phone-links">
               {content.phone ? (

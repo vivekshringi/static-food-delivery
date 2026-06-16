@@ -52,12 +52,15 @@ function SafeImage({ src, fallbackSrc, ...props }) {
 const initialFormState = {
   restaurantName: "",
   logoUrl: "",
+  entranceImageUrl: "",
   chefName: "",
   chefBio: "",
   chefImageUrl: "",
   cuisine: "",
   description: "",
   address: "",
+  phone: "",
+  mobile: "",
   timing: "",
   offersText: "",
   dishImagesText: "",
@@ -145,25 +148,39 @@ function HomePage({ content }) {
   const dishCaptions = Array.isArray(content.dishCaptions) ? content.dishCaptions : [];
   const delivery = content.delivery || {};
   const drinks = content.drinks || {};
+  const entranceImageUrl = content.entranceImageUrl || "/images/entrance.png";
   const googleMapsLocationQuery = buildGoogleMapsLocationQuery(content.address);
   const googleMapsEmbedUrl = buildGoogleMapsEmbedUrl(content.address);
 
   return (
     <section className="page page-home">
       <div className="hero">
-        <SafeImage
-          src={content.logoUrl || "/images/spice-anker-logo.png"}
-          fallbackSrc="/images/spice-anker-logo.png"
-          alt="Logo"
-          className="hero-logo"
-        />
-        <p className="eyebrow">Contemporary Indian Kitchen</p>
-        <h1>{content.restaurantName}</h1>
-        <p>{content.description}</p>
-        <div className="hero-actions">
-          <Link className="hero-btn" to="/menu">
-            Speisekarte ansehen
-          </Link>
+        <div className="hero-layout">
+          <div className="hero-copy">
+            <SafeImage
+              src={content.logoUrl || "/images/spice-anker-logo.png"}
+              fallbackSrc="/images/spice-anker-logo.png"
+              alt="Logo"
+              className="hero-logo"
+            />
+            <p className="eyebrow">Contemporary Indian Kitchen</p>
+            <h1>{content.restaurantName}</h1>
+            <p>{content.description}</p>
+            <div className="hero-actions">
+              <Link className="hero-btn" to="/menu">
+                Speisekarte ansehen
+              </Link>
+            </div>
+          </div>
+          <figure className="hero-visual">
+            <SafeImage
+              src={entranceImageUrl}
+              fallbackSrc="/images/entrance.png"
+              alt={`${content.restaurantName} Eingang`}
+              className="hero-image"
+            />
+            <figcaption>Eingang von {content.restaurantName}</figcaption>
+          </figure>
         </div>
       </div>
 
@@ -500,12 +517,15 @@ function AdminEditPage({ content, onUpdated }) {
     setFormState({
       restaurantName: content.restaurantName || "",
       logoUrl: content.logoUrl || "/images/",
+      entranceImageUrl: content.entranceImageUrl || "/images/entrance.png",
       chefName: content.chefName || "",
       chefBio: content.chefBio || "",
       chefImageUrl: content.chefImageUrl || "",
       cuisine: content.cuisine || "",
       description: content.description || "",
       address: content.address || "",
+      phone: content.phone || "",
+      mobile: content.mobile || "",
       timing: content.timing || "",
       offersText: Array.isArray(content.offers) ? content.offers.join("\n") : "",
       dishImagesText: Array.isArray(content.dishImages) ? content.dishImages.join("\n") : "",
@@ -567,12 +587,15 @@ function AdminEditPage({ content, onUpdated }) {
         body: JSON.stringify({
           restaurantName: formState.restaurantName,
           logoUrl: formState.logoUrl,
+          entranceImageUrl: formState.entranceImageUrl,
           chefName: formState.chefName,
           chefBio: formState.chefBio,
           chefImageUrl: formState.chefImageUrl,
           cuisine: formState.cuisine,
           description: formState.description,
           address: formState.address,
+          phone: formState.phone,
+          mobile: formState.mobile,
           timing: formState.timing,
           dishImages: parsedDishImages,
           dishCaptions: parsedDishCaptions,
@@ -689,6 +712,14 @@ function AdminEditPage({ content, onUpdated }) {
         <label htmlFor="logoUrl">Logo URL</label>
         <input id="logoUrl" name="logoUrl" value={formState.logoUrl} onChange={updateField} />
 
+        <label htmlFor="entranceImageUrl">Eingangsbild URL</label>
+        <input
+          id="entranceImageUrl"
+          name="entranceImageUrl"
+          value={formState.entranceImageUrl}
+          onChange={updateField}
+        />
+
         <label htmlFor="chefName">Chef</label>
         <input id="chefName" name="chefName" value={formState.chefName} onChange={updateField} />
 
@@ -705,16 +736,23 @@ function AdminEditPage({ content, onUpdated }) {
         <textarea id="description" name="description" value={formState.description} onChange={updateField} rows={4} />
 
         <label htmlFor="address">Adresse</label>
-        <input
+        <textarea
           id="address"
           name="address"
           value={formState.address}
           onChange={updateField}
+          rows={3}
           required
         />
 
+        <label htmlFor="phone">Telefon</label>
+        <input id="phone" name="phone" value={formState.phone} onChange={updateField} />
+
+        <label htmlFor="mobile">Mobil</label>
+        <input id="mobile" name="mobile" value={formState.mobile} onChange={updateField} />
+
         <label htmlFor="timing">Offnungszeiten</label>
-        <input id="timing" name="timing" value={formState.timing} onChange={updateField} required />
+        <textarea id="timing" name="timing" value={formState.timing} onChange={updateField} rows={3} required />
 
         <label htmlFor="offersText">Upcoming Offers (eine Zeile pro Angebot)</label>
         <textarea

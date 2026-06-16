@@ -25,6 +25,7 @@ const webDistDir = path.resolve(__dirname, '../../web/dist');
 const defaultContent = {
   restaurantName: 'Spice Anker',
   logoUrl: '/images/spice-anker-logo.png',
+  entranceImageUrl: '/images/entrance.png',
   chefName: 'Chef Sachin',
   chefBio:
     'Koch Sachin ist ein ehemaliger Seemann mit langjähriger Erfahrung in der authentischen indischen Küche. Mit seiner Leidenschaft für traditionelle Aromen und seiner Fähigkeit, köstliche Gerichte zuzubereiten, bringt er Disziplin, Hingabe und hohe Qualitätsansprüche in die Küche. In seiner Freizeit ist er ein begeisterter Cricket-Fan.',
@@ -76,19 +77,28 @@ function isTokenValid(token) {
   }
 }
 
+function readString(value, fallback = '') {
+  if (value === undefined || value === null) {
+    return String(fallback).trim();
+  }
+
+  return String(value).trim();
+}
+
 function normalizeContent(payload = {}) {
   return {
-    restaurantName: String(payload.restaurantName || defaultContent.restaurantName).trim(),
-    logoUrl: String(payload.logoUrl || defaultContent.logoUrl).trim(),
-    chefName: String(payload.chefName || defaultContent.chefName).trim(),
-    chefBio: String(payload.chefBio || defaultContent.chefBio).trim(),
-    chefImageUrl: String(payload.chefImageUrl || defaultContent.chefImageUrl).trim(),
-    cuisine: String(payload.cuisine || defaultContent.cuisine).trim(),
-    description: String(payload.description || defaultContent.description).trim(),
-    address: String(payload.address || defaultContent.address).trim(),
-    phone: String(payload.phone || defaultContent.phone).trim(),
-    mobile: String(payload.mobile || defaultContent.mobile).trim(),
-    timing: String(payload.timing || defaultContent.timing).trim(),
+    restaurantName: readString(payload.restaurantName, defaultContent.restaurantName),
+    logoUrl: readString(payload.logoUrl, defaultContent.logoUrl),
+    entranceImageUrl: readString(payload.entranceImageUrl, defaultContent.entranceImageUrl),
+    chefName: readString(payload.chefName, defaultContent.chefName),
+    chefBio: readString(payload.chefBio, defaultContent.chefBio),
+    chefImageUrl: readString(payload.chefImageUrl, defaultContent.chefImageUrl),
+    cuisine: readString(payload.cuisine, defaultContent.cuisine),
+    description: readString(payload.description, defaultContent.description),
+    address: readString(payload.address, defaultContent.address),
+    phone: readString(payload.phone, defaultContent.phone),
+    mobile: readString(payload.mobile, defaultContent.mobile),
+    timing: readString(payload.timing, defaultContent.timing),
     dishImages: Array.isArray(payload.dishImages)
       ? payload.dishImages.map(item => String(item).trim()).filter(Boolean)
       : defaultContent.dishImages,
@@ -99,16 +109,16 @@ function normalizeContent(payload = {}) {
       ? payload.offers.map(item => String(item).trim()).filter(Boolean)
       : defaultContent.offers,
     social: {
-      instagram: String(payload.social?.instagram || defaultContent.social.instagram).trim(),
-      facebook: String(payload.social?.facebook || defaultContent.social.facebook).trim(),
+      instagram: readString(payload.social?.instagram, defaultContent.social.instagram),
+      facebook: readString(payload.social?.facebook, defaultContent.social.facebook),
     },
     delivery: {
-      wolt: String(payload.delivery?.wolt || defaultContent.delivery.wolt).trim(),
-      uberEats: String(payload.delivery?.uberEats || defaultContent.delivery.uberEats).trim(),
-      lieferando: String(payload.delivery?.lieferando || defaultContent.delivery.lieferando).trim(),
+      wolt: readString(payload.delivery?.wolt, defaultContent.delivery.wolt),
+      uberEats: readString(payload.delivery?.uberEats, defaultContent.delivery.uberEats),
+      lieferando: readString(payload.delivery?.lieferando, defaultContent.delivery.lieferando),
     },
     drinks: {
-      fritzKola: String(payload.drinks?.fritzKola || defaultContent.drinks.fritzKola).trim(),
+      fritzKola: readString(payload.drinks?.fritzKola, defaultContent.drinks.fritzKola),
     },
   };
 }

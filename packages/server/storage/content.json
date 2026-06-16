@@ -1,6 +1,7 @@
 {
   "restaurantName": "Spice Anker",
   "logoUrl": "/images/spice-anker-logo.png",
+  "entranceImageUrl": "/images/entrance.png",
   "cuisine": "Authentische indische Kuche",
   "description": "Willkommen in unserem indischen Bistro in Hamburg, wo authentische Aromen auf herzliche Gastfreundschaft treffen. Wir servieren köstliche, frisch zubereitete Gerichte, inspiriert von Indiens reicher kulinarischer Kultur, und bieten gleichzeitig Speisen an, die den deutschen Geschmack und die Vorlieben berücksichtigen. Von aromatischen Currys und Tandoori-Spezialitäten bis hin zu ausgewogenen, wohltuenden Gerichten verbindet unsere Speisekarte Tradition, Qualität und ein modernes kulinarisches Erlebnis",
   "address": "Wendenstraße 197\n20537 Hamburg",

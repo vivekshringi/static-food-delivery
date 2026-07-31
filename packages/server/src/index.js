@@ -52,6 +52,34 @@ const defaultContent = {
   drinks: {
     fritzKola: 'https://fritz-kola.com/de',
   },
+  googleReviews: {
+    placeId: '',
+    placeName: '',
+    fetchedAt: null,
+    reviews: [
+      {
+        authorName: 'Julia M.',
+        rating: 5,
+        text: 'Sehr freundliches Team, tolles Ambiente und richtig gutes Butter Chicken.',
+        relativeTimeDescription: 'vor 2 Wochen',
+        profilePhotoUrl: '',
+      },
+      {
+        authorName: 'Kai R.',
+        rating: 5,
+        text: 'Authentischer Geschmack und schnelle Lieferung. Komme gerne wieder.',
+        relativeTimeDescription: 'vor 1 Monat',
+        profilePhotoUrl: '',
+      },
+      {
+        authorName: 'Selin A.',
+        rating: 4,
+        text: 'Sehr leckeres Biryani und nette Beratung bei der Auswahl.',
+        relativeTimeDescription: 'vor 1 Monat',
+        profilePhotoUrl: '',
+      },
+    ],
+  },
 };
 
 function hashToken(token) {
@@ -86,6 +114,19 @@ function readString(value, fallback = '') {
 }
 
 function normalizeContent(payload = {}) {
+  const incomingGoogleReviews = payload.googleReviews || {};
+  const normalizedReviews = Array.isArray(incomingGoogleReviews.reviews)
+    ? incomingGoogleReviews.reviews
+        .map((item) => ({
+          authorName: readString(item?.authorName),
+          rating: Math.max(1, Math.min(5, Number(item?.rating) || 5)),
+          text: readString(item?.text),
+          relativeTimeDescription: readString(item?.relativeTimeDescription),
+          profilePhotoUrl: readString(item?.profilePhotoUrl),
+        }))
+        .filter((item) => item.authorName && item.text)
+    : defaultContent.googleReviews.reviews;
+
   return {
     restaurantName: readString(payload.restaurantName, defaultContent.restaurantName),
     logoUrl: readString(payload.logoUrl, defaultContent.logoUrl),
@@ -120,6 +161,57 @@ function normalizeContent(payload = {}) {
     drinks: {
       fritzKola: readString(payload.drinks?.fritzKola, defaultContent.drinks.fritzKola),
     },
+    googleReviews: {
+      placeId: readString(incomingGoogleReviews.placeId, defaultContent.googleReviews.placeId),
+      placeName: readString(incomingGoogleReviews.placeName, defaultContent.googleReviews.placeName),
+      fetchedAt: readString(incomingGoogleReviews.fetchedAt, defaultContent.googleReviews.fetchedAt),
+      reviews: normalizedReviews,
+    },
+  };
+}
+
+function mapGooglePlaceReviewToContentReview(review = {}) {
+  return {
+    authorName: readString(review.author_name),
+    rating: Math.max(1, Math.min(5, Number(review.rating) || 5)),
+    text: readString(review.text),
+    relativeTimeDescription: readString(review.relative_time_description),
+    profilePhotoUrl: readString(review.profile_photo_url),
+  };
+}
+
+async function fetchGooglePlaceReviews(placeId) {
+  const apiKey = readString(process.env.GOOGLE_PLACES_API_KEY);
+  if (!apiKey || !placeId) {
+    return null;
+  }
+
+  const endpoint = new URL('https://maps.googleapis.com/maps/api/place/details/json');
+  endpoint.searchParams.set('place_id', placeId);
+  endpoint.searchParams.set('fields', 'name,reviews');
+  endpoint.searchParams.set('reviews_sort', 'newest');
+  endpoint.searchParams.set('key', apiKey);
+
+  const response = await fetch(endpoint);
+  if (!response.ok) {
+    throw new Error(`Google Places request failed with ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (payload.status !== 'OK') {
+    throw new Error(payload.error_message || `Google Places returned status ${payload.status}`);
+  }
+
+  const result = payload.result || {};
+  const reviews = Array.isArray(result.reviews)
+    ? result.reviews.map(mapGooglePlaceReviewToContentReview).filter((item) => item.authorName && item.text)
+    : [];
+
+  return {
+    placeId,
+    placeName: readString(result.name),
+    fetchedAt: new Date().toISOString(),
+    reviews,
   };
 }
 
@@ -190,6 +282,22 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/content', (_req, res) => {
   res.json(readContent());
+});
+
+app.get('/api/reviews', async (_req, res) => {
+  const content = readContent();
+  const placeId = readString(content.googleReviews?.placeId);
+
+  try {
+    const liveReviews = await fetchGooglePlaceReviews(placeId);
+    if (liveReviews) {
+      return res.json(liveReviews);
+    }
+  } catch (error) {
+    console.error('Could not fetch Google reviews:', error.message);
+  }
+
+  return res.json(content.googleReviews || defaultContent.googleReviews);
 });
 
 app.post('/api/admin/auth', (req, res) => {

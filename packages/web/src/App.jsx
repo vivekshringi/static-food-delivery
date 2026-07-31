@@ -70,7 +70,10 @@ const initialFormState = {
   wolt: "",
   uberEats: "",
   lieferando: "",
-  fritzKola: ""
+  fritzKola: "",
+  googlePlaceId: "",
+  googlePlaceName: "",
+  googleReviewsText: ""
 };
 
 function App() {
@@ -535,9 +538,40 @@ function AdminEditPage({ content, onUpdated }) {
       wolt: content.delivery?.wolt || "",
       uberEats: content.delivery?.uberEats || "",
       lieferando: content.delivery?.lieferando || "",
-      fritzKola: content.drinks?.fritzKola || ""
+      fritzKola: content.drinks?.fritzKola || "",
+      googlePlaceId: content.googleReviews?.placeId || "",
+      googlePlaceName: content.googleReviews?.placeName || "",
+      googleReviewsText: JSON.stringify(content.googleReviews?.reviews || [], null, 2)
     });
   }, [content]);
+
+  const parsedGoogleReviews = useMemo(() => {
+    const fallback = [];
+    const raw = String(formState.googleReviewsText || "").trim();
+
+    if (!raw) {
+      return fallback;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return fallback;
+      }
+
+      return parsed
+        .map((item) => ({
+          authorName: String(item?.authorName || "").trim(),
+          rating: Math.max(1, Math.min(5, Number(item?.rating) || 5)),
+          text: String(item?.text || "").trim(),
+          relativeTimeDescription: String(item?.relativeTimeDescription || "").trim(),
+          profilePhotoUrl: String(item?.profilePhotoUrl || "").trim()
+        }))
+        .filter((item) => item.authorName && item.text);
+    } catch {
+      return fallback;
+    }
+  }, [formState.googleReviewsText]);
 
   const parsedOffers = useMemo(
     () =>
@@ -611,6 +645,11 @@ function AdminEditPage({ content, onUpdated }) {
           },
           drinks: {
             fritzKola: formState.fritzKola
+          },
+          googleReviews: {
+            placeId: formState.googlePlaceId,
+            placeName: formState.googlePlaceName,
+            reviews: parsedGoogleReviews
           }
         })
       });
@@ -798,6 +837,26 @@ function AdminEditPage({ content, onUpdated }) {
 
         <label htmlFor="fritzKola">Fritz-Kola URL</label>
         <input id="fritzKola" name="fritzKola" value={formState.fritzKola} onChange={updateField} />
+
+        <label htmlFor="googlePlaceId">Google Place ID (optional, fur Live-Bewertungen)</label>
+        <input id="googlePlaceId" name="googlePlaceId" value={formState.googlePlaceId} onChange={updateField} />
+
+        <label htmlFor="googlePlaceName">Google Place Name (Anzeige)</label>
+        <input
+          id="googlePlaceName"
+          name="googlePlaceName"
+          value={formState.googlePlaceName}
+          onChange={updateField}
+        />
+
+        <label htmlFor="googleReviewsText">Google Reviews Fallback (JSON Array)</label>
+        <textarea
+          id="googleReviewsText"
+          name="googleReviewsText"
+          value={formState.googleReviewsText}
+          onChange={updateField}
+          rows={10}
+        />
 
         <button type="submit" disabled={saving}>
           Inhalte speichern

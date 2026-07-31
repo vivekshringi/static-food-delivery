@@ -14,18 +14,46 @@
     "/images/masala-chai.png"
   ],
   "offers": [
-    "Eröffnungsrabatt: 15% Eröffnungsrabatt auf Speisen bis zum 10.06.26"
+    "Eröffnungsrabatt: 15% Eröffnungsrabatt auf Speisen bis zum 10.08.26"
   ],
   "social": {
-    "instagram": "https://instagram.com",
+    "instagram": "https://www.instagram.com/spiceanker/",
     "facebook": "https://facebook.com"
   },
   "delivery": {
-    "wolt": "https://wolt.com",
-    "uberEats": "https://www.ubereats.com/de",
-    "lieferando": "https://www.lieferando.de"
+    "wolt": "https://wolt.com/de/deu/hamburg/restaurant/spice-anker",
+    "uberEats": "https://www.ubereats.com/de/store/spice-anker/",
+    "lieferando": "https://www.lieferando.de/en/menu/spice-anker-hamburg"
   },
   "drinks": {
     "fritzKola": "https://www.fritz-kola.com/"
+  },
+  "googleReviews": {
+    "placeId": "",
+    "placeName": "Spice Anker",
+    "fetchedAt": null,
+    "reviews": [
+      {
+        "authorName": "Nina H.",
+        "rating": 5,
+        "text": "Sehr leckeres Essen und super nette Bedienung. Besonders das Tandoori war top.",
+        "relativeTimeDescription": "vor 2 Wochen",
+        "profilePhotoUrl": ""
+      },
+      {
+        "authorName": "Thomas L.",
+        "rating": 5,
+        "text": "Frisch, aromatisch und schnell geliefert. Klare Empfehlung fur indische Kuche.",
+        "relativeTimeDescription": "vor 1 Monat",
+        "profilePhotoUrl": ""
+      },
+      {
+        "authorName": "Mira K.",
+        "rating": 4,
+        "text": "Tolle Gewurze und freundliche Atmosphare. Wir kommen gerne wieder.",
+        "relativeTimeDescription": "vor 1 Monat",
+        "profilePhotoUrl": ""
+      }
+    ]
   }
 }

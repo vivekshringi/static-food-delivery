@@ -12,6 +12,7 @@ Dieses Projekt enthalt:
 - Header/Home mit Logo-Unterstutzung (`logoUrl`) und direktem Menu-PDF Schnellzugriff
 - Teaser-Bereich fur kommende Angebote
 - Footer mit Instagram-, Facebook- und X-Handles
+- Google-Bewertungen als Highlight-Slider auf der Home-Seite (Live uber Places API oder als Fallback aus Content)
 - Menu-Seite zeigt PDF direkt im Browser (`/menu.pdf`)
 - Responsives Design fur Desktop, Tablet und Mobile
 - Admin Interface (`/admin`) zum Aktualisieren der Inhalte und Ersetzen der PDF-Speisekarte
@@ -67,7 +68,20 @@ Im Frontend unter `/admin` den Token eingeben, dann Inhalte speichern oder eine 
 ## API Endpoints
 
 - `GET /api/content` - Offentliche Inhalte fur Frontend
+- `GET /api/reviews` - Google Reviews (Live aus Places API wenn konfiguriert, sonst Fallback aus gespeicherten Inhalten)
 - `PUT /api/admin/content` - Inhalte aktualisieren (Bearer Token erforderlich)
 - `POST /api/admin/menu` - Menu PDF hochladen (Bearer Token erforderlich)
 - `POST /api/admin/auth` - Token prufen fur Admin Login
 - `GET /menu.pdf` - Speisekarte inline im Browser anzeigen
+
+## Google Reviews einrichten
+
+1. Optional im Admin unter `/admin/edit` den `Google Place ID` hinterlegen.
+2. Auf dem Server die Umgebungsvariable `GOOGLE_PLACES_API_KEY` setzen.
+3. Wenn kein API Key gesetzt ist, nutzt die Website automatisch die im Admin gepflegten Fallback-Reviews.
+
+Beispiel:
+
+```bash
+GOOGLE_PLACES_API_KEY=<dein-key> npm run start
+```

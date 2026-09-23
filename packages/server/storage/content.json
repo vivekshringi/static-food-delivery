@@ -7,14 +7,20 @@
   "address": "Wendenstraße 197\n20537 Hamburg",
   "phone": "040/410 99 598",
   "mobile": "0176/476 480 78",
-  "timing": "Mo. - Do. 11:00 - 21:00 Uhr\nFr. 12:00 - 21:00 Uhr\nSa. So. & Feiertage: 11:00 - 21:00 Uhr",
+  "taxId": "DE462469041",
+  "timing": "Mo. - Do. 11:00 - 21:00 Uhr\n Fr. 12:00 - 21:00 Uhr \n So. & Feiertage: 11:00 - 21:00 Uhr",
   "dishImages": [
     "/images/mango-sauce.png",
     "/images/biryani.png",
-    "/images/masala-chai.png"
+    "/images/masala-chai.png",
+    "/images/paanipuri.png",
+    "/images/paavbhaji.png",
+    "/images/pakora.png",
+    "/images/samosa.png"
   ],
   "offers": [
-    "Eröffnungsrabatt: 15% Eröffnungsrabatt auf Speisen bis zum 10.08.26"
+    "15% Rabatt bei Abholung",
+    "Lieferservice ab 16,90€ kostenlos im Umkreis von 3km"
   ],
   "social": {
     "instagram": "https://www.instagram.com/spiceanker/",
@@ -22,7 +28,6 @@
   },
   "delivery": {
     "wolt": "https://wolt.com/de/deu/hamburg/restaurant/spice-anker",
-    "uberEats": "https://www.ubereats.com/de/store/spice-anker/",
     "lieferando": "https://www.lieferando.de/en/menu/spice-anker-hamburg"
   },
   "drinks": {

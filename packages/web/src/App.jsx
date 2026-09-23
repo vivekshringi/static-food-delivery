@@ -61,6 +61,7 @@ const initialFormState = {
   address: "",
   phone: "",
   mobile: "",
+  taxId: "",
   timing: "",
   offersText: "",
   dishImagesText: "",
@@ -68,7 +69,6 @@ const initialFormState = {
   instagram: "",
   facebook: "",
   wolt: "",
-  uberEats: "",
   lieferando: "",
   fritzKola: "",
   googlePlaceId: "",
@@ -268,27 +268,11 @@ function HomePage({ content }) {
 
       <section className="delivery-availability panel">
         <h2>Jetzt auch bei Lieferdiensten</h2>
-        <p>Bestelle unsere Gerichte bequem uber Wolt, Uber Eats und Lieferando.</p>
+        <p>Bestelle unsere Gerichte bequem uber Wolt und Lieferando.</p>
         <div className="delivery-links">
           {delivery.wolt ? (
             <a href={delivery.wolt} target="_blank" rel="noreferrer" className="delivery-icon-link" title="Wolt">
               <SafeImage src="/icons/wolt.png" fallbackSrc="/icons/wolt.png" alt="Wolt" className="delivery-icon" />
-            </a>
-          ) : null}
-          {delivery.uberEats ? (
-            <a
-              href={delivery.uberEats}
-              target="_blank"
-              rel="noreferrer"
-              className="delivery-icon-link"
-              title="Uber Eats"
-            >
-              <SafeImage
-                src="/icons/ubereats.png"
-                fallbackSrc="/icons/ubereats.png"
-                alt="Uber Eats"
-                className="delivery-icon"
-              />
             </a>
           ) : null}
           {delivery.lieferando ? (
@@ -363,6 +347,11 @@ function SiteFooter({ content }) {
             </a>
           ) : null}
         </div>
+        {content.taxId ? (
+          <p className="footer-tax-id">
+            USt-ID: {content.taxId}
+          </p>
+        ) : null}
       </div>
     </footer>
   );
@@ -529,6 +518,7 @@ function AdminEditPage({ content, onUpdated }) {
       address: content.address || "",
       phone: content.phone || "",
       mobile: content.mobile || "",
+      taxId: content.taxId || "",
       timing: content.timing || "",
       offersText: Array.isArray(content.offers) ? content.offers.join("\n") : "",
       dishImagesText: Array.isArray(content.dishImages) ? content.dishImages.join("\n") : "",
@@ -536,7 +526,6 @@ function AdminEditPage({ content, onUpdated }) {
       instagram: content.social?.instagram || "",
       facebook: content.social?.facebook || "",
       wolt: content.delivery?.wolt || "",
-      uberEats: content.delivery?.uberEats || "",
       lieferando: content.delivery?.lieferando || "",
       fritzKola: content.drinks?.fritzKola || "",
       googlePlaceId: content.googleReviews?.placeId || "",
@@ -630,6 +619,7 @@ function AdminEditPage({ content, onUpdated }) {
           address: formState.address,
           phone: formState.phone,
           mobile: formState.mobile,
+          taxId: formState.taxId,
           timing: formState.timing,
           dishImages: parsedDishImages,
           dishCaptions: parsedDishCaptions,
@@ -640,7 +630,6 @@ function AdminEditPage({ content, onUpdated }) {
           },
           delivery: {
             wolt: formState.wolt,
-            uberEats: formState.uberEats,
             lieferando: formState.lieferando
           },
           drinks: {
@@ -790,6 +779,15 @@ function AdminEditPage({ content, onUpdated }) {
         <label htmlFor="mobile">Mobil</label>
         <input id="mobile" name="mobile" value={formState.mobile} onChange={updateField} />
 
+        <label htmlFor="taxId">USt-ID / Steuernummer (EU)</label>
+        <input
+          id="taxId"
+          name="taxId"
+          value={formState.taxId}
+          onChange={updateField}
+          placeholder="z. B. DE123456789"
+        />
+
         <label htmlFor="timing">Offnungszeiten</label>
         <textarea id="timing" name="timing" value={formState.timing} onChange={updateField} rows={3} required />
 
@@ -828,10 +826,7 @@ function AdminEditPage({ content, onUpdated }) {
 
         <label htmlFor="wolt">Wolt URL</label>
         <input id="wolt" name="wolt" value={formState.wolt} onChange={updateField} />
-
-        <label htmlFor="uberEats">Uber Eats URL</label>
-        <input id="uberEats" name="uberEats" value={formState.uberEats} onChange={updateField} />
-
+        
         <label htmlFor="lieferando">Lieferando URL</label>
         <input id="lieferando" name="lieferando" value={formState.lieferando} onChange={updateField} />
 

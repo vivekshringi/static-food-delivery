@@ -456,6 +456,11 @@ button:disabled {
   color: var(--subtle);
 }
 
+.footer-tax-id {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+}
+
 .social-links {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));

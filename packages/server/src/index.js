@@ -36,9 +36,10 @@ const defaultContent = {
   address: 'Wendenstraße 197\n20537 Hamburg',
   phone: '040/410 99 598',
   mobile: '0176/476 480 78',
+  taxId: '',
   timing: 'Mo. - Do. 11:00 - 21:00 Uhr\nFr. 12:00 - 21:00 Uhr\nSa. So. & Feiertage: 12:00 - 21:00 Uhr',
   dishImages: ['/images/mango-sauce.png', '/images/biryani.png', '/images/masala-chai.png'],
-  dishCaptions: ['Mango Sauce', 'Biryani', 'Masala Chai'],
+  dishCaptions: ['Mango Sauce', 'Biryani', 'Masala Chai', 'Pani Puri', 'Pav Bhaji', 'Pakora', 'Samosa'],
   offers: ['Mittwoch Tandoori Night: 20% auf alle Tandoori-Platten', 'Family Sunday Brunch mit Live-Chaat-Station'],
   social: {
     instagram: 'https://instagram.com/rangmahal.muc',
@@ -46,7 +47,6 @@ const defaultContent = {
   },
   delivery: {
     wolt: 'https://wolt.com',
-    uberEats: 'https://www.ubereats.com/de',
     lieferando: 'https://www.lieferando.de',
   },
   drinks: {
@@ -139,6 +139,7 @@ function normalizeContent(payload = {}) {
     address: readString(payload.address, defaultContent.address),
     phone: readString(payload.phone, defaultContent.phone),
     mobile: readString(payload.mobile, defaultContent.mobile),
+    taxId: readString(payload.taxId, defaultContent.taxId),
     timing: readString(payload.timing, defaultContent.timing),
     dishImages: Array.isArray(payload.dishImages)
       ? payload.dishImages.map(item => String(item).trim()).filter(Boolean)
@@ -155,7 +156,6 @@ function normalizeContent(payload = {}) {
     },
     delivery: {
       wolt: readString(payload.delivery?.wolt, defaultContent.delivery.wolt),
-      uberEats: readString(payload.delivery?.uberEats, defaultContent.delivery.uberEats),
       lieferando: readString(payload.delivery?.lieferando, defaultContent.delivery.lieferando),
     },
     drinks: {

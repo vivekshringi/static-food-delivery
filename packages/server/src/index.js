@@ -52,6 +52,16 @@ const defaultContent = {
   drinks: {
     fritzKola: 'https://fritz-kola.com/de',
   },
+  impressum: {
+    ownerName: 'Spice Anker (Inhaber)',
+    email: 'info@spiceanker.de',
+    managingDirector: '',
+    registerCourt: 'Amtsgericht Hamburg',
+    registryNumber: '',
+    taxNumber: '',
+    disputeResolution:
+      'Wir sind nicht bereit, an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.',
+  },
   googleReviews: {
     placeId: '',
     placeName: '',
@@ -160,6 +170,21 @@ function normalizeContent(payload = {}) {
     },
     drinks: {
       fritzKola: readString(payload.drinks?.fritzKola, defaultContent.drinks.fritzKola),
+    },
+    impressum: {
+      ownerName: readString(payload.impressum?.ownerName, defaultContent.impressum.ownerName),
+      email: readString(payload.impressum?.email, defaultContent.impressum.email),
+      managingDirector: readString(
+        payload.impressum?.managingDirector,
+        defaultContent.impressum.managingDirector
+      ),
+      registerCourt: readString(payload.impressum?.registerCourt, defaultContent.impressum.registerCourt),
+      registryNumber: readString(payload.impressum?.registryNumber, defaultContent.impressum.registryNumber),
+      taxNumber: readString(payload.impressum?.taxNumber, defaultContent.impressum.taxNumber),
+      disputeResolution: readString(
+        payload.impressum?.disputeResolution,
+        defaultContent.impressum.disputeResolution
+      ),
     },
     googleReviews: {
       placeId: readString(incomingGoogleReviews.placeId, defaultContent.googleReviews.placeId),

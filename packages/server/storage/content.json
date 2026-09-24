@@ -33,6 +33,15 @@
   "drinks": {
     "fritzKola": "https://www.fritz-kola.com/"
   },
+  "impressum": {
+    "ownerName": "Sachin Tawde",
+    "email": "info@spiceanker.de",
+    "managingDirector": "",
+    "registerCourt": "Amtsgericht Hamburg",
+    "registryNumber": "",
+    "taxNumber": "DE462469041",
+    "disputeResolution": "Wir sind nicht bereit, an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen."
+  },
   "googleReviews": {
     "placeId": "",
     "placeName": "Spice Anker",

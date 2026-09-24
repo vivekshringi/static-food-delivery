@@ -73,7 +73,14 @@ const initialFormState = {
   fritzKola: "",
   googlePlaceId: "",
   googlePlaceName: "",
-  googleReviewsText: ""
+  googleReviewsText: "",
+  impressumOwnerName: "",
+  impressumEmail: "",
+  impressumManagingDirector: "",
+  impressumRegisterCourt: "",
+  impressumRegistryNumber: "",
+  impressumTaxNumber: "",
+  impressumDisputeResolution: ""
 };
 
 function App() {
@@ -133,6 +140,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage content={content} />} />
             <Route path="/menu" element={<MenuPage content={content} />} />
+            <Route path="/impressum" element={<ImpressumPage content={content} />} />
             <Route path="/admin" element={<AdminAuthPage />} />
             <Route path="/admin/edit" element={<AdminEditPage content={content} onUpdated={loadContent} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -347,11 +355,9 @@ function SiteFooter({ content }) {
             </a>
           ) : null}
         </div>
-        {content.taxId ? (
-          <p className="footer-tax-id">
-            USt-ID: {content.taxId}
-          </p>
-        ) : null}
+        <nav className="footer-legal">
+          <Link to="/impressum">Impressum</Link>
+        </nav>
       </div>
     </footer>
   );
@@ -391,6 +397,74 @@ function MenuPage({ content }) {
 
       <div className="pdf-frame-wrap">
         <iframe title="Restaurant Menu" src={pdfSource} className="pdf-frame" />
+      </div>
+    </section>
+  );
+}
+
+function ImpressumPage({ content }) {
+  const impressum = content.impressum || {};
+  const addressLines = String(content.address || "").split("\n").map((line) => line.trim()).filter(Boolean);
+  const phoneRaw = String(content.phone || "").replace(/\s/g, "");
+
+  return (
+    <section className="page page-impressum">
+      <h1>Impressum</h1>
+      <p className="menu-description">
+        Angaben gemäß § 5 TMG / § 18 MStV für {content.restaurantName}.
+      </p>
+
+      <div className="panel impressum-block">
+        <h2>Angaben gemäß § 5 TMG</h2>
+        <p>
+          <strong>{content.restaurantName}</strong>
+        </p>
+        {impressum.ownerName ? <p>{impressum.ownerName}</p> : null}
+        {addressLines.length ? addressLines.map((line) => <p key={line}>{line}</p>) : null}
+
+        {content.phone ? (
+          <p>
+            Telefon: <a href={`tel:${phoneRaw}`}>{content.phone}</a>
+          </p>
+        ) : null}
+        {impressum.email ? (
+          <p>
+            E-Mail: <a href={`mailto:${impressum.email}`}>{impressum.email}</a>
+          </p>
+        ) : null}
+      </div>
+
+      <div className="panel impressum-block">
+        <h2>Vertreten durch</h2>
+        {impressum.managingDirector ? (
+          <p>
+            <strong>Geschäftsführer / Inhaber:</strong> {impressum.managingDirector}
+          </p>
+        ) : (
+          <p>{impressum.ownerName}</p>
+        )}
+        {content.taxId ? <p>USt-IdNr.: {content.taxId}</p> : null}
+        {impressum.taxNumber ? <p>Steuernummer: {impressum.taxNumber}</p> : null}
+      </div>
+
+      {(impressum.registerCourt || impressum.registryNumber) ? (
+        <div className="panel impressum-block">
+          <h2>Registereintrag</h2>
+          {impressum.registerCourt ? <p>Registergericht: {impressum.registerCourt}</p> : null}
+          {impressum.registryNumber ? <p>Registernummer: {impressum.registryNumber}</p> : null}
+        </div>
+      ) : null}
+
+      <div className="panel impressum-block">
+        <h2>Streitschlichtung</h2>
+        <p>
+          Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{" "}
+          <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noreferrer">
+            https://ec.europa.eu/consumers/odr
+          </a>
+          .
+        </p>
+        {impressum.disputeResolution ? <p>{impressum.disputeResolution}</p> : null}
       </div>
     </section>
   );
@@ -530,7 +604,14 @@ function AdminEditPage({ content, onUpdated }) {
       fritzKola: content.drinks?.fritzKola || "",
       googlePlaceId: content.googleReviews?.placeId || "",
       googlePlaceName: content.googleReviews?.placeName || "",
-      googleReviewsText: JSON.stringify(content.googleReviews?.reviews || [], null, 2)
+      googleReviewsText: JSON.stringify(content.googleReviews?.reviews || [], null, 2),
+      impressumOwnerName: content.impressum?.ownerName || "",
+      impressumEmail: content.impressum?.email || "",
+      impressumManagingDirector: content.impressum?.managingDirector || "",
+      impressumRegisterCourt: content.impressum?.registerCourt || "",
+      impressumRegistryNumber: content.impressum?.registryNumber || "",
+      impressumTaxNumber: content.impressum?.taxNumber || "",
+      impressumDisputeResolution: content.impressum?.disputeResolution || ""
     });
   }, [content]);
 
@@ -639,6 +720,15 @@ function AdminEditPage({ content, onUpdated }) {
             placeId: formState.googlePlaceId,
             placeName: formState.googlePlaceName,
             reviews: parsedGoogleReviews
+          },
+          impressum: {
+            ownerName: formState.impressumOwnerName,
+            email: formState.impressumEmail,
+            managingDirector: formState.impressumManagingDirector,
+            registerCourt: formState.impressumRegisterCourt,
+            registryNumber: formState.impressumRegistryNumber,
+            taxNumber: formState.impressumTaxNumber,
+            disputeResolution: formState.impressumDisputeResolution
           }
         })
       });
@@ -851,6 +941,67 @@ function AdminEditPage({ content, onUpdated }) {
           value={formState.googleReviewsText}
           onChange={updateField}
           rows={10}
+        />
+
+        <h2>Impressum</h2>
+
+        <label htmlFor="impressumOwnerName">Inhaber / Ansprechpartner</label>
+        <input
+          id="impressumOwnerName"
+          name="impressumOwnerName"
+          value={formState.impressumOwnerName}
+          onChange={updateField}
+        />
+
+        <label htmlFor="impressumEmail">E-Mail (Impressum)</label>
+        <input
+          id="impressumEmail"
+          name="impressumEmail"
+          value={formState.impressumEmail}
+          onChange={updateField}
+          placeholder="info@spiceanker.de"
+        />
+
+        <label htmlFor="impressumManagingDirector">Geschäftsführer / Inhaber (Vertreten durch)</label>
+        <input
+          id="impressumManagingDirector"
+          name="impressumManagingDirector"
+          value={formState.impressumManagingDirector}
+          onChange={updateField}
+        />
+
+        <label htmlFor="impressumRegisterCourt">Registergericht</label>
+        <input
+          id="impressumRegisterCourt"
+          name="impressumRegisterCourt"
+          value={formState.impressumRegisterCourt}
+          onChange={updateField}
+          placeholder="z. B. Amtsgericht Hamburg"
+        />
+
+        <label htmlFor="impressumRegistryNumber">Registernummer (z. B. HRB)</label>
+        <input
+          id="impressumRegistryNumber"
+          name="impressumRegistryNumber"
+          value={formState.impressumRegistryNumber}
+          onChange={updateField}
+        />
+
+        <label htmlFor="impressumTaxNumber">Steuernummer</label>
+        <input
+          id="impressumTaxNumber"
+          name="impressumTaxNumber"
+          value={formState.impressumTaxNumber}
+          onChange={updateField}
+        />
+
+        <label htmlFor="impressumDisputeResolution">Streitschlichtung Hinweis</label>
+        <textarea
+          id="impressumDisputeResolution"
+          name="impressumDisputeResolution"
+          value={formState.impressumDisputeResolution}
+          onChange={updateField}
+          rows={3}
         />
 
         <button type="submit" disabled={saving}>

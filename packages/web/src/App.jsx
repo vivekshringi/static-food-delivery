@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import ChatPage from "./ChatPage.jsx";
+import OrdersPage from "./OrdersPage.jsx";
+import "./ordering.css";
 
 const ADMIN_TOKEN_KEY = "adminTokenSessionV1";
 const ABSOLUTE_URL_PATTERN = /^(?:[a-z]+:)?\/\//i;
@@ -53,9 +56,6 @@ const initialFormState = {
   restaurantName: "",
   logoUrl: "",
   entranceImageUrl: "",
-  chefName: "",
-  chefBio: "",
-  chefImageUrl: "",
   cuisine: "",
   description: "",
   address: "",
@@ -73,7 +73,6 @@ const initialFormState = {
   fritzKola: "",
   googlePlaceId: "",
   googlePlaceName: "",
-  googleReviewsText: "",
   impressumOwnerName: "",
   impressumEmail: "",
   impressumManagingDirector: "",
@@ -128,6 +127,7 @@ function App() {
               Home
             </NavLink>
             <NavLink to="/menu">Menu</NavLink>
+            <NavLink to="/ordernow">Order Now</NavLink>
           </nav>
         </div>
       </header>
@@ -140,6 +140,14 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage content={content} />} />
             <Route path="/menu" element={<MenuPage content={content} />} />
+            <Route path="/ordernow" element={<ChatPage />} />
+            <Route path="/bestellen" element={<Navigate to="/ordernow" replace />} />
+            <Route path="/chat" element={<Navigate to="/ordernow" replace />} />
+            <Route
+              path="/currentOrders"
+              element={<OrdersPage token={sessionStorage.getItem(ADMIN_TOKEN_KEY) || ""} />}
+            />
+            <Route path="/orders" element={<Navigate to="/currentOrders" replace />} />
             <Route path="/impressum" element={<ImpressumPage content={content} />} />
             <Route path="/admin" element={<AdminAuthPage />} />
             <Route path="/admin/edit" element={<AdminEditPage content={content} onUpdated={loadContent} />} />
@@ -364,40 +372,64 @@ function SiteFooter({ content }) {
 }
 
 function MenuPage({ content }) {
-  const source = content.menuUrl || "/menu.pdf";
-  const [isMobileViewport, setIsMobileViewport] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false
-  );
+  const pdfUrl = content.menuUrl || "/menu.pdf";
+  const [menus, setMenus] = useState(null);
+  const [error, setError] = useState("");
+  const [tab, setTab] = useState("lunch");
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
-    const handleChange = (event) => setIsMobileViewport(event.matches);
-
-    setIsMobileViewport(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-    };
+    fetch("/api/menu")
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("menu"))))
+      .then(setMenus)
+      .catch(() => setError("Die Speisekarte konnte nicht geladen werden."));
   }, []);
 
-  const pdfSource = `${source}#page=1&zoom=80`;
+  const menu = menus?.[tab];
+  const euro = (value) => `${value.toFixed(2).replace(".", ",")} €`;
 
   return (
     <section className="page page-menu">
       <h1>Unsere Speisekarte</h1>
-      <p className="menu-description">
-        Die PDF wird direkt im Browser angezeigt. Auf Mobilgeraten kannst du bei Bedarf scrollen oder die
-        Datei herunterladen. Fur bessere Lesbarkeit offnet die PDF auf Mobilgeraten mit hoherem Zoom.
-      </p>
-
-      <div className="pdf-frame-wrap">
-        <iframe title="Restaurant Menu" src={pdfSource} className="pdf-frame" />
+      <div className="menu-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={tab === "lunch"} className={tab === "lunch" ? "active" : ""} onClick={() => setTab("lunch")}>
+          Mittagskarte (bis 16 Uhr)
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "dinner"} className={tab === "dinner" ? "active" : ""} onClick={() => setTab("dinner")}>
+          Abendkarte (ab 16 Uhr)
+        </button>
       </div>
+      {error && <p className="menu-description">{error}</p>}
+      {!menu && !error && <p className="menu-description">Lade Speisekarte…</p>}
+      {menu && (
+        <div className="menu-list">
+          {menu.categories.map((category) => (
+            <section className="menu-category" key={category.category}>
+              <h2>{category.category}</h2>
+              {category.description && <p className="menu-description">{category.description}</p>}
+              <ul>
+                {category.flavours.map((flavour) => (
+                  <li key={flavour.name}>
+                    <span className="menu-flavour">
+                      {flavour.name}
+                      {flavour.allergens.length > 0 && <small> ({flavour.allergens.join(", ")})</small>}
+                    </span>
+                    <span className="menu-price">{euro(flavour.price)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+          {Object.keys(menu.allergenLegend).length > 0 && (
+            <p className="menu-allergens">
+              <strong>Allergene: </strong>
+              {Object.entries(menu.allergenLegend).map(([key, label]) => `${key} = ${label}`).join(" · ")}
+            </p>
+          )}
+        </div>
+      )}
+      <p className="menu-description">
+        <a href={pdfUrl} target="_blank" rel="noreferrer">Speisekarte als PDF öffnen</a>
+      </p>
     </section>
   );
 }
@@ -536,6 +568,8 @@ function AdminEditPage({ content, onUpdated }) {
   const [authChecking, setAuthChecking] = useState(true);
   const [formState, setFormState] = useState(initialFormState);
   const [uploadFile, setUploadFile] = useState(null);
+  const [customersText, setCustomersText] = useState("");
+  const [customersLoaded, setCustomersLoaded] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -584,9 +618,6 @@ function AdminEditPage({ content, onUpdated }) {
       restaurantName: content.restaurantName || "",
       logoUrl: content.logoUrl || "/images/",
       entranceImageUrl: content.entranceImageUrl || "/images/entrance.png",
-      chefName: content.chefName || "",
-      chefBio: content.chefBio || "",
-      chefImageUrl: content.chefImageUrl || "",
       cuisine: content.cuisine || "",
       description: content.description || "",
       address: content.address || "",
@@ -604,7 +635,6 @@ function AdminEditPage({ content, onUpdated }) {
       fritzKola: content.drinks?.fritzKola || "",
       googlePlaceId: content.googleReviews?.placeId || "",
       googlePlaceName: content.googleReviews?.placeName || "",
-      googleReviewsText: JSON.stringify(content.googleReviews?.reviews || [], null, 2),
       impressumOwnerName: content.impressum?.ownerName || "",
       impressumEmail: content.impressum?.email || "",
       impressumManagingDirector: content.impressum?.managingDirector || "",
@@ -614,34 +644,6 @@ function AdminEditPage({ content, onUpdated }) {
       impressumDisputeResolution: content.impressum?.disputeResolution || ""
     });
   }, [content]);
-
-  const parsedGoogleReviews = useMemo(() => {
-    const fallback = [];
-    const raw = String(formState.googleReviewsText || "").trim();
-
-    if (!raw) {
-      return fallback;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        return fallback;
-      }
-
-      return parsed
-        .map((item) => ({
-          authorName: String(item?.authorName || "").trim(),
-          rating: Math.max(1, Math.min(5, Number(item?.rating) || 5)),
-          text: String(item?.text || "").trim(),
-          relativeTimeDescription: String(item?.relativeTimeDescription || "").trim(),
-          profilePhotoUrl: String(item?.profilePhotoUrl || "").trim()
-        }))
-        .filter((item) => item.authorName && item.text);
-    } catch {
-      return fallback;
-    }
-  }, [formState.googleReviewsText]);
 
   const parsedOffers = useMemo(
     () =>
@@ -692,9 +694,9 @@ function AdminEditPage({ content, onUpdated }) {
           restaurantName: formState.restaurantName,
           logoUrl: formState.logoUrl,
           entranceImageUrl: formState.entranceImageUrl,
-          chefName: formState.chefName,
-          chefBio: formState.chefBio,
-          chefImageUrl: formState.chefImageUrl,
+          chefName: content.chefName,
+          chefBio: content.chefBio,
+          chefImageUrl: content.chefImageUrl,
           cuisine: formState.cuisine,
           description: formState.description,
           address: formState.address,
@@ -719,7 +721,7 @@ function AdminEditPage({ content, onUpdated }) {
           googleReviews: {
             placeId: formState.googlePlaceId,
             placeName: formState.googlePlaceName,
-            reviews: parsedGoogleReviews
+            reviews: content.googleReviews?.reviews || []
           },
           impressum: {
             ownerName: formState.impressumOwnerName,
@@ -741,6 +743,40 @@ function AdminEditPage({ content, onUpdated }) {
 
       setStatus("Inhalte erfolgreich aktualisiert.");
       await onUpdated();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return;
+    fetch("/api/admin/customers", { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Kundenliste konnte nicht geladen werden.");
+        setCustomersText(result.customers.join("\n"));
+        setCustomersLoaded(true);
+      })
+      .catch((err) => setError(err.message));
+  }, [token]);
+
+  async function handleCustomersSave(event) {
+    event.preventDefault();
+    setStatus("");
+    setError("");
+    setSaving(true);
+    try {
+      const response = await fetch("/api/admin/customers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ customers: customersText.split(/[\n,;]+/) })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Speichern fehlgeschlagen");
+      setCustomersText(result.customers.join("\n"));
+      setStatus(`Kundenliste gespeichert (${result.customers.length} Kunden).`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -810,6 +846,7 @@ function AdminEditPage({ content, onUpdated }) {
       </p>
 
       <div className="admin-toolbar">
+        <Link className="orders-back" to="/currentOrders">Aktuelle Bestellungen</Link>
         <button type="button" className="ghost-btn" onClick={handleLogout}>
           Abmelden
         </button>
@@ -837,15 +874,6 @@ function AdminEditPage({ content, onUpdated }) {
           value={formState.entranceImageUrl}
           onChange={updateField}
         />
-
-        <label htmlFor="chefName">Chef</label>
-        <input id="chefName" name="chefName" value={formState.chefName} onChange={updateField} />
-
-        <label htmlFor="chefBio">Chef Bio</label>
-        <textarea id="chefBio" name="chefBio" value={formState.chefBio} onChange={updateField} rows={3} />
-
-        <label htmlFor="chefImageUrl">Chef Bild URL</label>
-        <input id="chefImageUrl" name="chefImageUrl" value={formState.chefImageUrl} onChange={updateField} />
 
         <label htmlFor="cuisine">Indische Kuche</label>
         <input id="cuisine" name="cuisine" value={formState.cuisine} onChange={updateField} />
@@ -934,15 +962,6 @@ function AdminEditPage({ content, onUpdated }) {
           onChange={updateField}
         />
 
-        <label htmlFor="googleReviewsText">Google Reviews Fallback (JSON Array)</label>
-        <textarea
-          id="googleReviewsText"
-          name="googleReviewsText"
-          value={formState.googleReviewsText}
-          onChange={updateField}
-          rows={10}
-        />
-
         <h2>Impressum</h2>
 
         <label htmlFor="impressumOwnerName">Inhaber / Ansprechpartner</label>
@@ -1006,6 +1025,21 @@ function AdminEditPage({ content, onUpdated }) {
 
         <button type="submit" disabled={saving}>
           Inhalte speichern
+        </button>
+      </form>
+
+      <form className="panel admin-upload" onSubmit={handleCustomersSave}>
+        <h2>Kundenliste</h2>
+        <label htmlFor="customersText">Kundennummern (eine pro Zeile)</label>
+        <textarea
+          id="customersText"
+          value={customersText}
+          onChange={(event) => setCustomersText(event.target.value)}
+          rows={10}
+          disabled={!customersLoaded}
+        />
+        <button type="submit" disabled={saving || !customersLoaded}>
+          Kundenliste speichern
         </button>
       </form>
 

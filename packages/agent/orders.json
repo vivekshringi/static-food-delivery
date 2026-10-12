@@ -1,0 +1,20 @@
+[
+  {
+    "customerNumber": "01212",
+    "time": "2026-10-09T13:17:43.787Z",
+    "items": [
+      {
+        "name": "Chicken",
+        "category": "ANKER Pineapple (Ananas) Kokos Curry Sauce",
+        "price": 10.9,
+        "allergens": [
+          "Milk / lactose",
+          "Nuts (cashews, etc.)"
+        ]
+      }
+    ],
+    "total": 10.9,
+    "currency": "EUR",
+    "comment": "make it hot"
+  }
+]

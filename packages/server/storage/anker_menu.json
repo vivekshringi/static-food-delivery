@@ -1,0 +1,207 @@
+{
+  "restaurant": "ANKER",
+  "source_file": "menu.pdf",
+  "currency": "EUR",
+  "items": [
+    {
+      "category": "ANKER Soja Chili Sauce",
+      "description": "Eine kräftige Indo-Chinese-Fusion-Sauce mit herzhaften Soja-Noten, abgerundet durch die feurige Schärfe von grünen Chilis, Knoblauch und einer leicht säuerlichen Note mit Reis.",
+      "flavours": [
+        {"name": "Chicken", "price": {"day": 11.9, "evening": 15.9}, "allergens": ["A", "C", "F", "N", "L"]},
+        {"name": "Paneer", "price": {"day": 10.9, "evening": 14.9}, "allergens": ["G", "F", "N", "C", "L"]},
+        {"name": "Chili Soja", "price": {"day": 10.9, "evening": 15.9}, "allergens": ["F", "N", "L"]}
+      ]
+    },
+    {
+      "category": "ANKER Special Makhni",
+      "description": "Samtige Tomaten-Butter-Sahnesauce, verfeinert mit gemahlenen Cashewkernen und milden Gewürzen, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Butter Chicken", "price": {"day": 11.9, "evening": 17.9}, "allergens": ["G", "H"]},
+        {"name": "Butter Paneer", "price": {"day": 9.9, "evening": 16.9}, "allergens": ["G", "H"]},
+        {"name": "Butter Tofu", "price": {"day": 9.5, "evening": 16.9}, "allergens": ["F", "G", "H"]}
+      ]
+    },
+    {
+      "category": "ANKER Masala Sauce",
+      "description": "Herzhafte, gewürzte Tomaten-Zwiebel-Sauce mit Sahne, Paprika und Zwiebeln, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Chicken Tikka", "price": {"day": 13.9, "evening": 18.9}, "allergens": ["G", "H"]},
+        {"name": "Paneer Tikka", "price": {"day": 12.9, "evening": 16.9}, "allergens": ["G", "H"]},
+        {"name": "Prawns Tikka", "price": {"day": 15.9, "evening": 19.9}, "allergens": ["D", "B", "G", "H"]},
+        {"name": "Fish Tikka", "price": {"evening": 18.9}, "allergens": ["D", "B", "G", "H"]},
+        {"name": "Tofu Tikka", "price": {"day": 12.9, "evening": 16.9}, "allergens": ["F"]}
+      ]
+    },
+    {
+      "category": "ANKER Saffron Malai Sauce",
+      "description": "Eine königliche, samtige Sahnesauce mit edlen Safranfäden und milden, aromatischen Gewürzen, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Chicken", "price": {"day": 11.9, "evening": 18.9}, "allergens": ["G", "H"]},
+        {"name": "Kofta", "price": {"day": 10.9, "evening": 17.9}, "allergens": ["A", "G", "H"]},
+        {"name": "Paneer", "price": {"day": 10.9, "evening": 17.9}, "allergens": ["G", "H"]},
+        {"name": "Tofu", "price": {"evening": 17.9}, "allergens": ["F", "G", "H"]}
+      ]
+    },
+    {
+      "category": "ANKER Special Classical Curry",
+      "description": "Eine traditionelle, mittelscharfe Sauce aus Zwiebeln und Tomaten, abgeschmeckt mit einer ausgewogenen indischen Gewürzmischung, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Chicken", "price": {"day": 10.9, "evening": 16.9}, "allergens": []},
+        {"name": "Lamm", "price": {"day": 12.9, "evening": 18.9}, "allergens": []},
+        {"name": "Prawns", "price": {"day": 13.9, "evening": 18.9}, "allergens": ["D", "B"]},
+        {"name": "Fish", "price": {"day": 11.9, "evening": 16.9}, "allergens": ["D", "B"]},
+        {"name": "Paneer", "price": {"day": 9.9, "evening": 16.9}, "allergens": ["G"]},
+        {"name": "Vegetables", "price": {"day": 9.9, "evening": 15.9}, "allergens": []},
+        {"name": "Tofu", "price": {"day": 9.9, "evening": 16.9}, "allergens": ["F"]}
+      ]
+    },
+    {
+      "category": "ANKER Pineapple (Ananas) Kokos Curry Sauce",
+      "description": "Eine exotisch-cremige Mischung aus Kokosmilch und milder Currysauce, verfeinert mit süßen Ananasstücken, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Chicken", "price": {"day": 10.9, "evening": 16.9}, "allergens": ["G", "H"]},
+        {"name": "Prawns", "price": {"day": 13.9, "evening": 18.9}, "allergens": ["D", "B"]},
+        {"name": "Fish", "price": {"day": 11.9, "evening": 17.9}, "allergens": ["D", "B"]},
+        {"name": "Tofu", "price": {"day": 9.9, "evening": 16.9}, "allergens": ["F"]}
+      ]
+    },
+    {
+      "category": "ANKER Mango Kokos Curry Sauce",
+      "description": "Eine milde, exotische Mischung aus gelbem Curry und süßem Mangofruchtfleisch mit fruchtiger Note, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Chicken", "price": {"day": 10.9, "evening": 16.9}, "allergens": []},
+        {"name": "Prawns", "price": {"day": 13.9, "evening": 18.9}, "allergens": ["D", "B"]},
+        {"name": "Fish", "price": {"day": 11.9, "evening": 17.9}, "allergens": ["D", "B"]},
+        {"name": "Tofu", "price": {"day": 9.9, "evening": 16.9}, "allergens": ["F"]}
+      ]
+    },
+    {
+      "category": "ANKER Special Spinat",
+      "description": "Eine lebendige, nährstoffreiche Sauce aus frischem Spinatpüree, verfeinert mit sautiertem Knoblauch, Ingwer und aromatischen Gewürzen, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Chicken", "price": {"day": 9.9, "evening": 16.9}, "allergens": ["G"]},
+        {"name": "Lamm", "price": {"day": 12.9, "evening": 18.9}, "allergens": []},
+        {"name": "Paneer", "price": {"day": 8.9, "evening": 15.9}, "allergens": ["G"]},
+        {"name": "Tofu", "price": {"day": 8.9, "evening": 15.9}, "allergens": ["F"]}
+      ]
+    },
+    {
+      "category": "ANKER Special Biryani",
+      "description": "in weltberühmtes Meisterwerk aus langkörnigem Basmati-Reis, dass in Schichten mit zartem Fleisch oder Gemüse, edlem Safran und einer komplexen Mischung exotischer Gewürze langsam mit Pappadum gegart wird",
+      "flavours": [
+        {"name": "Chicken", "price": {"day": 16.9, "evening": 16.9}, "allergens": ["G", "A"]},
+        {"name": "Lamm", "price": {"day": 17.9, "evening": 17.9}, "allergens": ["G", "A"]},
+        {"name": "Vegetable", "price": {"day": 15.5, "evening": 15.5}, "allergens": ["A"]}
+      ]
+    },
+    {
+      "category": "ANKER Salad",
+      "description": "Frischer gemischter Salat mit mariniertem und gegrilltem Chicken, Paneer oder Tofu im Tikka-Stil, serviert mit knackigem Gemüse und würzigem Dressing.",
+      "flavours": [
+        {"name": "Chicken Tikka Salad", "price": {"day": 10.9}, "allergens": ["G"]},
+        {"name": "Paneer Tikka Salad", "price": {"day": 9.9}, "allergens": ["G"]},
+        {"name": "Tofu Tikka Salad", "price": {"day": 9.9}, "allergens": ["G"]}
+      ]
+    },
+    {
+      "category": "ANKER Chat Corner",
+      "description": "Knusprige Pani Puri gefüllt mit würziger Kartoffelmasse und serviert mit Tamarindenwasser.",
+      "flavours": [
+        {"name": "Pani Puri Shot", "price": {"day": 1.5}, "allergens": ["A"]},
+        {"name": "Dahi (Joghurt) Potato Puri", "price": {"day": 8.9}, "allergens": ["A"]},
+        {"name": "Bhel Puri", "price": {"day": 9.9}, "allergens": ["A", "G"]}
+      ]
+    },
+    {
+      "category": "ANKER Dal",
+      "description": "Goldgelbe Linsen mit Tadka aus in Butterfett geröstetem Kreuzkümmel, Knoblauch und getrockneten roten Chilis, mit Reis & Pappadam.",
+      "flavours": [
+        {"name": "Dal Tadka", "description": "(Goldgelbe Linsen, veredelt mit einem duftenden Tadka aus in Butterfett geröstetem Kreuzkümmel, Knoblauch & getrockneten roten Chilis mit Reis & Pappadam)", "price": {"day": 9.5, "evening": 14.9}, "allergens": []},
+        {"name": "Dal Makhni", "description": "(Cream Butter, Black Urid Dal - Das ultimative Seelenfutter; cremige schwarze Linsen, verfeinert mit Butter & einer feinen Rauchnote mit Reis & Pappadam)", "price": {"day": 11.9, "evening": 15.9}, "allergens": []},
+        {"name": "Anker Special Kabuli Chana Masala", "description": "(Ein klassisches nordindisches Gericht aus zarten Kichererbsen (Kabuli Chana) in einer kräftigen, leicht säuerlichen Sauce aus Zwiebeln, Tomaten, Ingwer & einer Gewürzmischung mit Kreuzkümmel & Amchoor mit Reis & Pappadam)", "price": {"day": 9.9, "evening": 16.9}, "allergens": []},
+        {"name": "Dal Lamm Gosht", "description": "(Eine herzhafte Kombination aus zartem Lammfleisch und proteinreichen Linsen, langsam geschmort in einer kräftigen Sauce aus traditionellen indischen Gewürzen mit Reis)", "price": {"evening": 19.9}, "allergens": []}
+      ]
+    },
+    {
+      "category": "ANKER Street Food",
+      "description": "Würziges Kartoffel-Küchlein im Soft-Brötchen mit herzhaften Chutneys.",
+      "flavours": [
+        {"name": "Mumbai Vada Pav", "description": "(Würziges Kartoffel-Küchlein im Soft-Brötchen mit herzhaften Chutneys)", "price": {"day": 8.9, "evening": 8.9}, "allergens": ["A", "G", "E"]},
+        {"name": "Mixed Pakoda", "description": "(Knusprige, goldbraun frittierte Gemüsestückchen in einem würzigen Teigmantel aus Kichererbsenmehl)", "price": {"evening": 7.9}, "allergens": []},
+        {"name": "Samosa 2 Stück", "description": "(Handgefertigte, knusprige Teigtaschen mit einer herzhaften Füllung aus gewürzten Kartoffeln, grünen Erbsen und traditionellen aromatischen Kräutern)", "price": {"evening": 7.9}, "allergens": ["A", "G"]}
+      ]
+    },
+    {
+      "category": "ANKER Misal Pav",
+      "description": "(Eine feurige Spezialität aus Maharashtra: Ein scharfes Curry aus Bohnen (Usal), garniert mit knusprigem „Farsan“ (herzhafter Knabbermix), frischen Zwiebeln und Zitrone, serviert mit weichen Brötchen)",
+      "flavours": [
+        {"name": "ANKER Misal Pav", "price": {"day": 12.9, "evening": 12.9}, "allergens": ["A", "G"]},
+        {"name": "Misal Vada Chat", "price": {"day": 13.9, "evening": 13.9}, "allergens": ["G"]},
+        {"name": "Misal Samosa Chat", "price": {"day": 13.9, "evening": 13.9}, "allergens": ["G"]}
+      ]
+    },
+    {
+      "category": "ANKER Family Pav Bhaji",
+      "description": "(Ein Streetfood-Klassiker: Ein herzhaftes, butteriges Püree aus gewürztem saisonalem Gemüse, serviert mit getoasteten Butter-Brötchen)",
+      "flavours": [
+        {"name": "Mayra’s Masala Pav Bhaji", "price": {"evening": 10.9}, "allergens": []},
+        {"name": "Neha’s Beetroot Pav Bhaji", "price": {"evening": 11.9}, "allergens": []},
+        {"name": "Nayan’s Cheese Pav Bhaji", "price": {"evening": 13.9}, "allergens": []},
+        {"name": "Extra Masala Pav", "price": {"evening": 1.9}, "allergens": []}
+      ]
+    },
+    {
+      "category": "TANDOOR Items",
+      "flavours": [
+        {"name": "Plan Naan", "price": {"day": 2.5, "evening": 2.5}, "allergens": ["A", "G"]},
+        {"name": "Butter Naan", "price": {"day": 2.7, "evening": 2.7}, "allergens": ["A", "G"]},
+        {"name": "Garlic Naan", "price": {"day": 2.9, "evening": 2.9}, "allergens": ["A", "G"]},
+        {"name": "Tandoori Roti", "price": {"day": 2.5, "evening": 2.9}, "allergens": ["A", "G"]}
+      ]
+    },
+    {
+      "category": "DRINKS",
+      "flavours": [
+        {"name": "Masala Chai", "price": {"day": 3.9, "evening": 3.9}, "allergens": ["G"]},
+        {"name": "Water", "price": {"day": 2.9, "evening": 2.9}, "allergens": []},
+        {"name": "Fritz-Kola (0.33 ml)", "price": {"day": 2.9, "evening": 2.9}, "allergens": []},
+        {"name": "Fritz-Kola (0.5 ml)", "price": {"day": 3.9, "evening": 3.9}, "allergens": []},
+        {"name": "Mango Lassi", "price": {"day": 3.9, "evening": 3.9}, "allergens": ["G"]},
+        {"name": "Sweet Lassi", "price": {"day": 3.9, "evening": 3.9}, "allergens": ["G"]},
+        {"name": "Salziges Lassi", "price": {"evening": 3.9}, "allergens": ["G"]},
+        {"name": "ANKER Nimbu Pani", "price": {"day": 3.9, "evening": 2.7}, "allergens": []},
+        {"name": "Kaffee", "price": {"day": 2.0, "evening": 2.0}, "allergens": []}
+      ]
+    },
+    {
+      "category": "EXTRA",
+      "flavours": [
+        {"name": "Basmati Rice", "price": {"day": 2.9, "evening": 2.9}, "allergens": []},
+        {"name": "Raita", "price": {"day": 2.5, "evening": 2.5}, "allergens": []},
+        {"name": "Green Chutney", "price": {"day": 1.9, "evening": 1.9}, "allergens": []},
+        {"name": "Tamarind Chutney", "price": {"day": 1.9, "evening": 1.9}, "allergens": []},
+        {"name": "Extra Pav", "price": {"day": 1.9, "evening": 1.9}, "allergens": []},
+        {"name": "Extra Chicken", "price": {"day": 5.9, "evening": 5.9}, "allergens": []},
+        {"name": "Extra Paneer", "price": {"day": 4.9, "evening": 4.9}, "allergens": []},
+        {"name": "Extra Vegetable", "price": {"day": 3.9, "evening": 3.9}, "allergens": []},
+        {"name": "Pappadum", "price": {"day": 1.5, "evening": 1.5}, "allergens": []},
+        {"name": "Mixed Pickle", "price": {"day": 2.0, "evening": 2.0}, "allergens": []},
+        {"name": "Eingelegte Rote Zwiebeln", "price": {"day": 3.0, "evening": 3.0}, "allergens": []}
+      ]
+    }
+  ],
+  "allergen_legend": {
+    "A": "Gluten (wheat, rye, barley, oats)",
+    "B": "Crustaceans (prawns)",
+    "C": "Eggs",
+    "D": "Fish",
+    "E": "Peanuts",
+    "F": "Soybeans (Soy)",
+    "G": "Milk / lactose",
+    "H": "Nuts (cashews, etc.)",
+    "L": "Celery",
+    "M": "Mustard",
+    "N": "Sesame seeds",
+    "O": "Sulphur dioxide"
+  }
+}

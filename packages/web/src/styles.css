@@ -785,3 +785,12 @@ button:disabled {
     min-height: 68vh;
   }
 }
+
+.menu-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+.menu-tabs button { padding: 0.6rem 1rem; border: 1px solid currentColor; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.menu-tabs button.active { background: #c8102e; border-color: #c8102e; color: #fff; }
+.menu-category { margin: 1.5rem 0; }
+.menu-category ul { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.menu-category li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; border-bottom: 1px dotted rgba(128, 128, 128, 0.5); }
+.menu-price { font-weight: 600; white-space: nowrap; }
+.menu-allergens { font-size: 0.85rem; opacity: 0.8; }

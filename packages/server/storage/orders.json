@@ -1,0 +1,50 @@
+[
+  {
+    "customerNumber": "01212",
+    "items": [
+      {
+        "name": "Paneer",
+        "category": "ANKER Saffron Malai Sauce",
+        "price": 17.9,
+        "allergens": [
+          "Milk / lactose",
+          "Nuts (cashews, etc.)"
+        ]
+      },
+      {
+        "name": "Garlic Naan",
+        "category": "TANDOOR Items",
+        "price": 2.9,
+        "allergens": [
+          "Gluten (wheat, rye, barley, oats)",
+          "Milk / lactose"
+        ]
+      },
+      {
+        "name": "Garlic Naan",
+        "category": "TANDOOR Items",
+        "price": 2.9,
+        "allergens": [
+          "Gluten (wheat, rye, barley, oats)",
+          "Milk / lactose"
+        ]
+      }
+    ],
+    "priceType": "evening",
+    "subtotal": 23.7,
+    "discountPercent": 0,
+    "discountAmount": 0,
+    "total": 23.7,
+    "currency": "EUR",
+    "comment": "i want hot",
+    "time": "2026-10-12T20:20:32.755Z",
+    "payment": {
+      "provider": "paypal",
+      "status": "COMPLETED",
+      "paypalOrderId": "83043554CY5723340",
+      "captureId": "5X404191XD399573M",
+      "payerEmail": "sb-nqqea51524208@personal.example.com",
+      "paidAt": "2026-10-12T20:20:31.603Z"
+    }
+  }
+]

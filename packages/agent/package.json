@@ -1,0 +1,5 @@
+{
+  "name": "@restaurant/agent",
+  "private": true,
+  "type": "module"
+}

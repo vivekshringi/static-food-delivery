@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1f5f66" />
+    <link rel="icon" href="/spice-anker.logo.png" />
+    <title>ANKER Bestellübersicht</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="orders-page">
+    <header class="bar">
+      <a class="brand" href="/">
+        <img src="/spice-anker.logo.png" alt="Spice Anker" class="logo" />
+        <h1>Bestellübersicht</h1>
+      </a>
+      <a href="/">Zum Chat</a>
+    </header>
+
+    <main class="orders-main">
+      <div class="toolbar">
+        <p id="stats" class="stats"></p>
+        <button id="refresh" type="button">Aktualisieren</button>
+      </div>
+
+      <p id="empty" class="empty" hidden>Noch keine Bestellungen.</p>
+
+      <table id="table" hidden>
+        <thead>
+          <tr>
+            <th>Zeit</th>
+            <th>Kunde</th>
+            <th>Artikel</th>
+            <th>Kommentar</th>
+            <th>Summe</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </main>
+
+    <script src="/orders.js" defer></script>
+  </body>
+</html>

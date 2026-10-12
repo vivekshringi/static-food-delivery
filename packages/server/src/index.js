@@ -6,6 +6,17 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import cron from 'node-cron';
+import { agent, getMenuForPeriod, getCustomerNumbers, saveCustomerNumbers } from '../../agent/agent.js';
+import {
+  capturePaypalOrder,
+  createPaypalOrder,
+  getAllPayments,
+  getPayment,
+  getPaypalClientId,
+  updatePayment,
+} from '../../agent/payments.js';
+import { logConversation, logPayment } from '../../agent/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,7 +31,13 @@ const adminTokenHash = process.env.ADMIN_TOKEN_HASH || hashToken(process.env.ADM
 const storageDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.resolve(__dirname, '../storage');
 const contentFilePath = path.join(storageDir, 'content.json');
 const menuFilePath = path.join(storageDir, 'menu.pdf');
+const ordersFilePath = path.join(storageDir, 'orders.json');
+const ordersBackupFilePath = path.join(storageDir, 'order.backup.json');
+const legacyOrdersFilePath = path.resolve(__dirname, '../../agent/orders.json');
 const webDistDir = path.resolve(__dirname, '../../web/dist');
+const maxChatMessageLength = 1000;
+const paymentReceivedMessage =
+  '(System: the PayPal payment for this order was received successfully. Call finalize_order now and confirm the order to the customer.)';
 
 const defaultContent = {
   restaurantName: 'Spice Anker',
@@ -279,6 +296,77 @@ function requireAdminToken(req, res, next) {
   next();
 }
 
+function constantTimeEqual(left, right) {
+  const leftDigest = crypto.createHash('sha256').update(String(left)).digest();
+  const rightDigest = crypto.createHash('sha256').update(String(right)).digest();
+  return crypto.timingSafeEqual(leftDigest, rightDigest);
+}
+
+function basicCredentialsMatch(req, username, password) {
+  const authorization = req.get('authorization') || '';
+  if (!authorization.startsWith('Basic ')) return false;
+
+  const decoded = Buffer.from(authorization.slice(6), 'base64').toString('utf8');
+  const separator = decoded.indexOf(':');
+  return (
+    separator >= 0 &&
+    constantTimeEqual(decoded.slice(0, separator), username) &&
+    constantTimeEqual(decoded.slice(separator + 1), password)
+  );
+}
+
+function requireChatCredentials(req, res, next) {
+  const username = process.env.CHAT_USER;
+  const password = process.env.CHAT_PASSWORD;
+  if (!username || !password) {
+    return res.status(503).json({ error: 'Chat authentication is not configured.' });
+  }
+
+  if (basicCredentialsMatch(req, username, password)) return next();
+
+  return res.status(401).json({ error: 'Chat login is required.' });
+}
+
+function contentToText(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((block) => (typeof block === 'string' ? block : block?.text || ''))
+    .join('');
+}
+
+function getChatStartMessage(acceptLanguage) {
+  const german = String(acceptLanguage || '').toLowerCase().includes('de');
+  return german
+    ? '(The customer has just opened the chat. Begin in German (Deutsch).)'
+    : '(The customer has just opened the chat. Begin in English.)';
+}
+
+async function readOrderFile(filePath) {
+  try {
+    const parsed = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+}
+
+// Moves all current orders to the backup file, then empties orders.json.
+export async function backupOrders() {
+  const orders = await readOrderFile(ordersFilePath);
+  if (orders.length === 0) return 0;
+  const backup = await readOrderFile(ordersBackupFilePath);
+  await fs.promises.writeFile(
+    ordersBackupFilePath,
+    JSON.stringify([...backup, ...orders], null, 2),
+    'utf8'
+  );
+  await fs.promises.writeFile(ordersFilePath, '[]', 'utf8');
+  console.log(`[backup] moved ${orders.length} order(s) to ${ordersBackupFilePath}`);
+  return orders.length;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -325,6 +413,248 @@ app.get('/api/reviews', async (_req, res) => {
   return res.json(content.googleReviews || defaultContent.googleReviews);
 });
 
+// Logs the tool calls and the reply the agent produced for the latest customer message.
+async function logAgentTurn(threadId, messages, payment) {
+  let start = messages.length - 1;
+  while (start > 0 && messages[start]?.getType?.() !== 'human') start -= 1;
+  for (const message of messages.slice(start + 1)) {
+    const type = message.getType?.();
+    if (type === 'ai') {
+      for (const call of message.tool_calls || []) {
+        await logConversation('tool_call', { threadId, tool: call.name, args: call.args });
+      }
+      const text = contentToText(message.content);
+      if (text) await logConversation('agent_reply', { threadId, text });
+    } else if (type === 'tool') {
+      await logConversation('tool_result', {
+        threadId,
+        tool: message.name,
+        result: contentToText(message.content),
+      });
+    }
+  }
+  if (payment) {
+    await logPayment('chat_turn_payment_state', { threadId, status: payment.status, amount: payment.amount });
+  }
+}
+
+function validThreadId(threadId) {
+  return typeof threadId === 'string' && /^[0-9a-f-]{36}$/i.test(threadId);
+}
+
+app.post('/api/chat', requireChatCredentials, async (req, res) => {
+  const { threadId, message, start, paymentCompleted } = req.body || {};
+  if (!validThreadId(threadId)) {
+    return res.status(400).json({ error: 'Ungültige Sitzung.' });
+  }
+
+  let text = start === true ? getChatStartMessage(req.get('accept-language')) : message;
+  if (paymentCompleted === true) {
+    const payment = await getPayment(threadId);
+    if (payment?.status !== 'paid') {
+      logPayment('return_without_confirmed_payment', { threadId, status: payment?.status ?? null });
+      return res.status(402).json({ error: 'Die Zahlung wurde nicht bestätigt.' });
+    }
+    logPayment('return_from_paypal', { threadId, paypalOrderId: payment.paypalOrderId });
+    text = paymentReceivedMessage;
+  }
+  if (typeof text !== 'string' || !text.trim() || text.length > maxChatMessageLength) {
+    return res.status(400).json({ error: 'Ungültige Nachricht.' });
+  }
+
+  logConversation('user_message', {
+    threadId,
+    source: paymentCompleted === true ? 'system_payment_received' : start === true ? 'start' : 'customer',
+    text: text.trim(),
+  });
+
+  try {
+    const result = await agent.invoke(
+      { messages: [{ role: 'user', content: text.trim() }] },
+      { configurable: { thread_id: threadId } }
+    );
+    const lastMessage = result.messages[result.messages.length - 1];
+    const payment = await getPayment(threadId);
+    await logAgentTurn(threadId, result.messages, payment);
+    return res.json({
+      reply: contentToText(lastMessage.content),
+      ...(payment?.status === 'pending'
+        ? { payment: { amount: payment.amount, currency: payment.currency } }
+        : {}),
+    });
+  } catch (error) {
+    console.error('[chat] agent error:', error);
+    logConversation('agent_error', { threadId, error: error.message });
+    return res.status(500).json({ error: 'Die Nachricht konnte nicht verarbeitet werden.' });
+  }
+});
+
+app.get('/api/paypal/config', requireChatCredentials, (_req, res) => {
+  const clientId = getPaypalClientId();
+  if (!clientId) return res.status(503).json({ error: 'PayPal ist nicht konfiguriert.' });
+  return res.json({ clientId });
+});
+
+app.post('/api/paypal/create-order', requireChatCredentials, async (req, res) => {
+  const { threadId } = req.body || {};
+  if (!validThreadId(threadId)) {
+    return res.status(400).json({ error: 'Ungültige Sitzung.' });
+  }
+  try {
+    const payment = await getPayment(threadId);
+    if (payment?.status !== 'pending') {
+      logPayment('create_order_rejected', { threadId, status: payment?.status ?? null });
+      return res.status(409).json({ error: 'Keine offene Zahlung.' });
+    }
+    const paypalOrderId = await createPaypalOrder(threadId, payment);
+    logPayment('paypal_order_created', {
+      threadId,
+      paypalOrderId,
+      amount: payment.amount,
+      currency: payment.currency,
+    });
+    await updatePayment(threadId, (current) =>
+      current?.status === 'pending' ? { ...current, paypalOrderId } : undefined
+    );
+    return res.json({ id: paypalOrderId });
+  } catch (error) {
+    console.error('[paypal] create error:', error);
+    logPayment('paypal_order_create_failed', { threadId, error: error.message });
+    return res.status(502).json({ error: 'Die Zahlung konnte nicht gestartet werden.' });
+  }
+});
+
+app.post('/api/paypal/capture-order', requireChatCredentials, async (req, res) => {
+  const { threadId, orderID } = req.body || {};
+  if (!validThreadId(threadId) || typeof orderID !== 'string') {
+    return res.status(400).json({ error: 'Ungültige Anfrage.' });
+  }
+  try {
+    const payment = await getPayment(threadId);
+    if (payment?.status === 'paid') return res.json({ ok: true });
+    if (payment?.status !== 'pending' || payment.paypalOrderId !== orderID) {
+      logPayment('capture_rejected', {
+        threadId,
+        paypalOrderId: orderID,
+        status: payment?.status ?? null,
+        expectedPaypalOrderId: payment?.paypalOrderId ?? null,
+      });
+      return res.status(409).json({ error: 'Keine passende offene Zahlung.' });
+    }
+    logPayment('capture_started', { threadId, paypalOrderId: orderID });
+    const capture = await capturePaypalOrder(orderID);
+    const amountMatches =
+      Math.round(Number(capture.amount) * 100) === Math.round(payment.amount * 100) &&
+      capture.currency === payment.currency;
+    if (capture.status !== 'COMPLETED' || capture.captureStatus !== 'COMPLETED' || !amountMatches) {
+      logPayment('capture_failed', {
+        threadId,
+        paypalOrderId: orderID,
+        status: capture.status,
+        captureStatus: capture.captureStatus,
+        captured: `${capture.amount} ${capture.currency}`,
+        expected: `${payment.amount} ${payment.currency}`,
+      });
+      await updatePayment(threadId, (current) => ({
+        ...current,
+        lastError: `Capture not completed (${capture.status}/${capture.captureStatus}, amount ${capture.amount} ${capture.currency})`,
+        lastErrorAt: new Date().toISOString(),
+      }));
+      return res.status(402).json({ error: 'Die Zahlung wurde nicht abgeschlossen.' });
+    }
+    await updatePayment(threadId, (current) => ({
+      ...current,
+      status: 'paid',
+      captureId: capture.captureId,
+      payerEmail: capture.payerEmail,
+      paidAt: new Date().toISOString(),
+    }));
+    logPayment('payment_captured', {
+      threadId,
+      paypalOrderId: orderID,
+      captureId: capture.captureId,
+      payerEmail: capture.payerEmail,
+      amount: payment.amount,
+      currency: payment.currency,
+    });
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('[paypal] capture error:', error);
+    logPayment('capture_error', { threadId, paypalOrderId: orderID, error: error.message });
+    await updatePayment(threadId, (current) =>
+      current ? { ...current, lastError: error.message, lastErrorAt: new Date().toISOString() } : undefined
+    ).catch(() => {});
+    return res.status(502).json({ error: 'Die Zahlung konnte nicht bestätigt werden.' });
+  }
+});
+
+app.get('/api/admin/orders-backup', requireAdminToken, (_req, res) => {
+  if (!fs.existsSync(ordersBackupFilePath)) {
+    return res.status(404).json({ error: 'Noch kein Backup vorhanden.' });
+  }
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="order.backup.json"');
+  return res.sendFile(ordersBackupFilePath);
+});
+
+app.get('/api/payments', requireAdminToken, async (_req, res) => {
+  try {
+    const payments = await getAllPayments();
+    const list = Object.entries(payments).map(([sessionId, record]) => ({
+      sessionId,
+      ...record,
+      time: record.finalizedAt || record.paidAt || record.createdAt || null,
+    }));
+    return res.json(list);
+  } catch (error) {
+    console.error('[payments] read error:', error);
+    return res.status(500).json({ error: 'Zahlungen konnten nicht geladen werden.' });
+  }
+});
+
+app.get('/api/orders', requireAdminToken, async (_req, res) => {
+  try {
+    const [storedOrders, legacyOrders, payments] = await Promise.all([
+      readOrderFile(ordersFilePath),
+      readOrderFile(legacyOrdersFilePath),
+      getAllPayments(),
+    ]);
+    const paymentsByPaypalId = new Map(
+      Object.entries(payments)
+        .filter(([, record]) => record?.paypalOrderId)
+        .map(([sessionId, record]) => [
+          record.paypalOrderId,
+          {
+            sessionId,
+            recordStatus: record.status,
+            amount: record.amount,
+            currency: record.currency,
+            paypalOrderId: record.paypalOrderId,
+            captureId: record.captureId,
+            payerEmail: record.payerEmail,
+            paidAt: record.paidAt,
+          },
+        ])
+    );
+    const ordersById = new Map();
+    for (const order of [...legacyOrders, ...storedOrders]) {
+      if (order?.payment?.status !== 'COMPLETED') continue;
+      const id = order?.time
+        ? `${order.customerNumber}:${order.time}`
+        : JSON.stringify(order);
+      const record = paymentsByPaypalId.get(order.payment.paypalOrderId);
+      ordersById.set(id, {
+        ...order,
+        payment: { ...record, ...order.payment, payerEmail: order.payment.payerEmail || record?.payerEmail },
+      });
+    }
+    return res.json([...ordersById.values()]);
+  } catch (error) {
+    console.error('[orders] read error:', error);
+    return res.status(500).json({ error: 'Bestellungen konnten nicht geladen werden.' });
+  }
+});
+
 app.post('/api/admin/auth', (req, res) => {
   const token = String(req.body?.token || '');
   if (!isTokenValid(token)) {
@@ -358,6 +688,33 @@ app.post('/api/admin/menu', requireAdminToken, upload.single('menu'), (req, res)
   return res.json({ ok: true, menuUrl: '/menu.pdf' });
 });
 
+app.get('/api/admin/customers', requireAdminToken, (_req, res) => {
+  try {
+    return res.json({ customers: getCustomerNumbers() });
+  } catch (error) {
+    console.error('[customers] read error:', error);
+    return res.status(500).json({ error: 'Kundenliste konnte nicht geladen werden.' });
+  }
+});
+
+app.put('/api/admin/customers', requireAdminToken, async (req, res) => {
+  const { customers } = req.body || {};
+  if (!Array.isArray(customers) || customers.length > 10000) {
+    return res.status(400).json({ error: 'Ungültige Kundenliste.' });
+  }
+  try {
+    return res.json({ customers: await saveCustomerNumbers(customers) });
+  } catch (error) {
+    if (error instanceof TypeError) return res.status(400).json({ error: error.message });
+    console.error('[customers] write error:', error);
+    return res.status(500).json({ error: 'Kundenliste konnte nicht gespeichert werden.' });
+  }
+});
+
+app.get('/api/menu', (_req, res) => {
+  return res.json({ lunch: getMenuForPeriod('day'), dinner: getMenuForPeriod('evening') });
+});
+
 app.get('/menu.pdf', (_req, res) => {
   if (!fs.existsSync(menuFilePath)) {
     return res.status(404).send('No menu PDF uploaded yet.');
@@ -387,6 +744,12 @@ app.use((err, _req, res, _next) => {
 
   return res.status(500).json({ error: 'Unexpected server error' });
 });
+
+cron.schedule(
+  '5 * * * *',
+  () => backupOrders().catch((error) => console.error('[backup] failed:', error)),
+  { timezone: process.env.BACKUP_TIMEZONE || 'Europe/Berlin' }
+);
 
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);

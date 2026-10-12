@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1f5f66" />
+    <link rel="icon" href="/spice-anker.logo.png" />
+    <title>ANKER Bestellung</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="chat-page">
+    <header class="bar">
+      <a class="brand" href="/">
+        <img src="/spice-anker.logo.png" alt="Spice Anker" class="logo" />
+        <h1>Spice Anker</h1>
+      </a>
+      <a href="/orders">Bestellungen</a>
+    </header>
+
+    <main id="log" class="log" aria-live="polite"></main>
+
+    <form id="form" class="composer" autocomplete="off">
+      <input
+        id="input"
+        type="text"
+        maxlength="1000"
+        placeholder="Nachricht schreiben …"
+        aria-label="Nachricht"
+        required
+      />
+      <button id="send" type="submit">Senden</button>
+    </form>
+
+    <script src="/chat.js" defer></script>
+  </body>
+</html>

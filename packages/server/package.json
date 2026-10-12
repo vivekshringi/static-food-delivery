@@ -6,12 +6,18 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "anker:agent": "node ../agent/agent.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "multer": "^2.0.0"
+    "@paypal/agent-toolkit": "1.11.0",
+    "multer": "^2.4.0",
+    "node-cron": "^4.6.0",
+    "@langchain/openai": "^1.6.0",
+    "deepagents": "^1.13.1",
+    "langchain": "^1.5.10"
   }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { createDeepAgent } from "deepagents";
 import { MemorySaver } from "@langchain/langgraph";
-import { tool, context } from "langchain";
+import { tool, context, createMiddleware } from "langchain";
 import * as z from "zod";
 import * as dotenv from "dotenv";
 import { pathToFileURL, fileURLToPath } from "node:url";
@@ -13,6 +13,8 @@ import readline from "node:readline/promises";
 import { SYSTEM_PROMPT_TEXT } from "./prompt.js";
 import { getPayment, updatePayment } from "./payments.js";
 import { logPayment } from "./logger.js";
+import { createRateLimiter } from "./rate-limit.js";
+import { withFileLock } from "./file-lock.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../..");
@@ -24,7 +26,12 @@ process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
 process.env.LANGSMITH_TRACING = process.env.LANGSMITH_TRACING ?? "";
 process.env.LANGSMITH_ENDPOINT = process.env.LANGSMITH_ENDPOINT ?? "";
 process.env.LANGSMITH_PROJECT = process.env.LANGSMITH_PROJECT ?? "";
-export const DEFAULT_MODEL = "openai:gpt-4o";
+
+// Any model string accepted by LangChain's `initChatModel` works here, e.g.
+// "openai:gpt-4o", "ollama:llama3.1" or "ollama:deepseek-v4.1-flash:cloud".
+// Ollama needs a tool-calling capable model and the "@langchain/ollama" package;
+// the local server URL is taken from OLLAMA_BASE_URL (default http://127.0.0.1:11434).
+export const DEFAULT_MODEL = process.env.AGENT_MODEL?.trim() || "openai:gpt-4o";
 
 // The restaurant's local time decides the greeting.
 const TIME_ZONE = "Europe/Berlin";
@@ -88,6 +95,55 @@ export function hasCustomerNumber(customerNumber) {
     throw new TypeError("customerNumber must be a non-empty string");
   }
   return getCustomerNumbers().includes(customerNumber.trim());
+}
+
+// Failed verifications are counted in code. The per-thread counter keeps one conversation from
+// retrying forever, and the per-client counter stops a caller from resetting that limit by opening
+// a fresh thread. Without the client scope, a new threadId would grant a fresh set of guesses.
+const MAX_FAILED_VERIFICATIONS = 3;
+const MAX_FAILED_VERIFICATIONS_PER_CLIENT = Number(process.env.CHAT_MAX_VERIFICATION_FAILURES) || 15;
+const VERIFICATION_WINDOW_MS = 15 * 60 * 1000;
+const failedVerifications = createRateLimiter({
+  limit: MAX_FAILED_VERIFICATIONS,
+  windowMs: VERIFICATION_WINDOW_MS,
+});
+const failedVerificationsPerClient = createRateLimiter({
+  limit: MAX_FAILED_VERIFICATIONS_PER_CLIENT,
+  windowMs: VERIFICATION_WINDOW_MS,
+});
+
+const threadKey = (threadId) => `thread:${threadId ?? ""}`;
+const clientKey = (clientId) => `client:${clientId ?? ""}`;
+
+/**
+ * Reports whether this thread or client still has verification attempts left.
+ */
+export function verificationBlocked(threadId, clientId) {
+  if (!failedVerifications.check(threadKey(threadId)).allowed) return true;
+  return clientId ? !failedVerificationsPerClient.check(clientKey(clientId)).allowed : false;
+}
+
+/**
+ * Counts one failed verification and reports whether both scopes still allow a retry.
+ */
+function recordFailedVerification(threadId, clientId) {
+  const threadStatus = failedVerifications.hit(threadKey(threadId));
+  const clientStatus = clientId
+    ? failedVerificationsPerClient.hit(clientKey(clientId))
+    : { allowed: true, remaining: MAX_FAILED_VERIFICATIONS_PER_CLIENT };
+  return {
+    allowed: threadStatus.allowed && clientStatus.allowed,
+    remaining: Math.min(threadStatus.remaining, clientStatus.remaining),
+  };
+}
+
+/**
+ * Clears the per-thread counter after a successful verification. The per-client counter is
+ * deliberately not cleared: a customer who knows one valid number must not be able to reset the
+ * budget and keep enumerating the rest.
+ */
+function clearVerificationAttempts(threadId) {
+  failedVerifications.reset(threadKey(threadId));
 }
 
 const DAY_PRICE_UNTIL_HOUR = 16;
@@ -325,17 +381,50 @@ const getCurrentTimeTool = tool(
 );
 
 const verifyCustomerNumberTool = tool(
-  async ({ customerNumber }) => {
-    try {
-      return { valid: hasCustomerNumber(customerNumber) };
-    } catch {
-      return { valid: false };
+  async ({ customerNumber }, config) => {
+    const threadId = config?.configurable?.thread_id;
+    const clientId = config?.configurable?.client_id;
+
+    if (verificationBlocked(threadId, clientId)) {
+      logPayment("verification_blocked", { threadId, clientId });
+      return {
+        valid: false,
+        locked: true,
+        error: "Too many failed attempts. Do not try again; end the conversation politely.",
+      };
     }
+
+    let valid = false;
+    try {
+      valid = hasCustomerNumber(customerNumber);
+    } catch {
+      valid = false;
+    }
+
+    if (valid) {
+      clearVerificationAttempts(threadId);
+      return { valid: true };
+    }
+
+    const status = recordFailedVerification(threadId, clientId);
+    logPayment("verification_failed", {
+      threadId,
+      clientId,
+      remaining: status.remaining,
+      locked: !status.allowed,
+    });
+    return status.allowed
+      ? { valid: false, remainingAttempts: status.remaining }
+      : {
+          valid: false,
+          locked: true,
+          error: "Too many failed attempts. Do not try again; end the conversation politely.",
+        };
   },
   {
     name: "verify_customer_number",
     description:
-      "Check whether a customer number exists. Returns { valid }. Never reveal other customer numbers.",
+      "Check whether a customer number exists. Returns { valid }. Never reveal other customer numbers. After 3 failed attempts the tool locks and reports { locked: true }; then end the conversation politely.",
     schema: z.object({
       customerNumber: z.string().describe("The number the customer entered."),
     }),
@@ -566,14 +655,19 @@ export async function finalizeOrder(threadId) {
     },
   };
 
-  let orders = [];
-  try {
-    orders = JSON.parse(await readFile(ORDERS_FILE, "utf-8"));
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
-  orders.push(order);
-  await writeFile(ORDERS_FILE, JSON.stringify(orders, null, 2), "utf-8");
+  // Serialised with the hourly backup cron, which reads then truncates this file. Without the
+  // shared lock a payment captured during a backup could be truncated away.
+  await withFileLock("orders", async () => {
+    let orders = [];
+    try {
+      orders = JSON.parse(await readFile(ORDERS_FILE, "utf-8"));
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    orders.push(order);
+    await writeFile(ORDERS_FILE, JSON.stringify(orders, null, 2), "utf-8");
+  });
+
   await updatePayment(threadId, (current) => ({
     ...current,
     status: "finalized",
@@ -653,6 +747,26 @@ const finalizeOrderTool = tool(
   }
 );
 
+// deepagents always adds a `task` tool with a general-purpose subagent whose prompt is generic and
+// does not inherit the ordering guardrails or the payment rules. The subagent also receives every
+// tool, including prepare_payment and finalize_order. Replace that subagent with an inert one and
+// strip `task` from the model-facing tool list, so customer text cannot escape into an unguarded
+// agent that shares the live thread.
+const disableTaskDelegation = createMiddleware({
+  name: "DisableTaskDelegation",
+  wrapModelCall: (request, handler) =>
+    handler({ ...request, tools: (request.tools ?? []).filter((tool) => tool.name !== "task") }),
+  wrapToolCall: (request, handler) =>
+    request.toolCall.name === "task"
+      ? {
+          content: "Error: task delegation is not available.",
+          tool_call_id: request.toolCall.id ?? "",
+          name: "task",
+          status: "error",
+        }
+      : handler(request),
+});
+
 export const agent = createDeepAgent({
   model: DEFAULT_MODEL,
   systemPrompt: SYSTEM_PROMPT,
@@ -668,6 +782,17 @@ export const agent = createDeepAgent({
     preparePaymentTool,
     finalizeOrderTool,
   ],
+  // Replaces the auto-added general-purpose subagent; without this deepagents injects an unguarded
+  // one that inherits all tools. The tool itself is disabled by disableTaskDelegation.
+  subagents: [
+    {
+      name: "general-purpose",
+      description: "Not available. Handle the customer's request yourself.",
+      systemPrompt: SYSTEM_PROMPT_TEXT,
+      tools: [],
+    },
+  ],
+  middleware: [disableTaskDelegation],
   // Keeps the conversation (and the order so far) between chat turns.
   checkpointer: new MemorySaver(),
 });

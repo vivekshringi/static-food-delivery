@@ -16,6 +16,12 @@ primary_region = 'lhr'
   min_machines_running = 0
   processes = ['app']
 
+[env]
+  OLLAMA_BASE_URL = 'https://ollama.com'
+  # Requests reach the app through Fly's proxy, so the per-client chat limits must read the real
+  # client address from X-Forwarded-For. Remove this if the app is exposed without a proxy.
+  TRUST_PROXY = 'true'
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'

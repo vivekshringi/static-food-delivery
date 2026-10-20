@@ -39,13 +39,12 @@ npm run dev
 
 ## Admin Token
 
-Standard-Token im Server:
-
-- `demo-admin-token`
+Der Admin-Token **muss** gesetzt sein. Ohne `ADMIN_TOKEN` bzw. `ADMIN_TOKEN_HASH`
+antworten alle Admin-Endpunkte mit `503` (fail closed) — es gibt keinen Standard-Token.
 
 Der Token wird serverseitig als SHA-256 Hash verglichen (nicht im Klartext gespeichert).
 
-Empfohlen fur lokale Entwicklung: Token in `.env` setzen.
+Fur lokale Entwicklung: Token in `.env` setzen.
 
 ```bash
 ADMIN_TOKEN=dein-geheimer-token
@@ -64,6 +63,59 @@ ADMIN_TOKEN_HASH=<sha256-hash> npm run start
 ```
 
 Im Frontend unter `/admin` den Token eingeben, dann Inhalte speichern oder eine neue PDF hochladen.
+
+## Chat-Agent Modell (OpenAI oder Ollama)
+
+Das Modell des Chat-Agents (`packages/agent/agent.js`) wird uber `AGENT_MODEL` gesteuert.
+Standard ist `openai:gpt-4o`. Jeder von LangChain `initChatModel` unterstutzte Provider funktioniert.
+
+OpenAI:
+
+```bash
+OPENAI_API_KEY=<dein-key> npm run start
+```
+
+Lokales Ollama (Modell mit Tool-Calling-Unterstutzung, z. B. `llama3.1`, `qwen2.5`):
+
+```bash
+curl http://127.0.0.1:11434/api/tags   # verfugbare Modelle prufen
+OLLAMA_BASE_URL=http://127.0.0.1:11434 AGENT_MODEL=ollama:llama3.1 npm run start
+```
+
+Ollama Cloud (benotigt `OLLAMA_API_KEY`):
+
+```bash
+OLLAMA_BASE_URL=https://ollama.com OLLAMA_API_KEY=<dein-key> AGENT_MODEL=ollama:deepseek-v4.1-flash:cloud npm run start
+```
+
+`OLLAMA_BASE_URL` zeigt lokal standardmassig auf `http://127.0.0.1:11434`; fuer Ollama Cloud muss es auf `https://ollama.com` zeigen. Fly.io setzt die Cloud-URL ueber `fly.toml`.
+
+## Chat-Schutz vor Missbrauch
+
+Der Chat ist durch Limits geschuetzt, die im Code und nicht nur im Prompt stehen:
+
+- `verify_customer_number` zaehlt Fehlversuche. Nach 3 Fehlversuchen ist der Thread gesperrt und
+  der Server antwortet mit `429`.
+- Zusaetzlich gilt ein Limit pro Client (IP), damit ein Angreifer die Thread-Sperre nicht durch
+  eine neue `threadId` umgeht. Standard: 15 Fehlversuche in 15 Minuten.
+- `/api/chat` ist pro Client begrenzt: 30 Nachrichten pro Minute, 5 neue Chats pro Minute.
+- Der Agent hat keine Delegation an einen Sub-Agenten; das `task`-Tool ist deaktiviert.
+
+```bash
+TRUST_PROXY=true                      # hinter Reverse Proxy / Fly.io
+CHAT_RATE_LIMIT=30                    # Nachrichten pro Minute und Client
+CHAT_NEW_THREAD_RATE_LIMIT=5          # neue Chats pro Minute und Client
+CHAT_MAX_VERIFICATION_FAILURES=15     # Fehlversuche pro Client in 15 Minuten
+CHAT_TURN_TIMEOUT_MS=90000            # maximale Dauer einer Chat-Antwort
+CORS_ORIGINS=https://app.example.de   # nur fuer ein separates Frontend noetig
+```
+
+`TRUST_PROXY=true` ist fuer Fly.io bereits in `fly.toml` gesetzt. Ohne diese Option teilen sich
+hinter einem Proxy alle Besucher eine Adresse, und die Limits wuerden global statt pro Client gelten.
+
+Zusaetzlich gilt: ein `threadId` gehoert dem Client, der ihn zuerst benutzt hat (sonst `403`),
+und `orders.json` wird beim Bestellabschluss und beim stuendlichen Backup serialisiert
+geschrieben, damit keine bezahlte Bestellung verloren geht.
 
 ## API Endpoints
 

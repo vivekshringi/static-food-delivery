@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+.env
+packages/web/dist
+packages/server/storage/uploads/*.tmp
+packages/server/storage/payments.json
+packages/server/storage/order.backup.json
+packages/server/storage/logs/
+packages/server/storage/orders.json
+

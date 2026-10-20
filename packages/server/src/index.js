@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import cron from 'node-cron';
-import { agent, getMenuForPeriod, getCustomerNumbers, saveCustomerNumbers } from '../../agent/agent.js';
+import { agent, getMenuForPeriod, getCustomerNumbers, saveCustomerNumbers, verificationBlocked } from '../../agent/agent.js';
 import {
   capturePaypalOrder,
   createPaypalOrder,
@@ -17,6 +17,8 @@ import {
   updatePayment,
 } from '../../agent/payments.js';
 import { logConversation, logPayment } from '../../agent/logger.js';
+import { createRateLimiter } from '../../agent/rate-limit.js';
+import { withFileLock } from '../../agent/file-lock.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +28,9 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const app = express();
 const port = process.env.PORT || 4000;
-const adminTokenHash = process.env.ADMIN_TOKEN_HASH || hashToken(process.env.ADMIN_TOKEN || 'demo-admin-token');
+// Admin routes fail closed: without a configured secret no token is accepted.
+const configuredAdminTokenHash =
+  process.env.ADMIN_TOKEN_HASH || (process.env.ADMIN_TOKEN ? hashToken(process.env.ADMIN_TOKEN) : null);
 
 const storageDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.resolve(__dirname, '../storage');
 const contentFilePath = path.join(storageDir, 'content.json');
@@ -36,6 +40,97 @@ const ordersBackupFilePath = path.join(storageDir, 'order.backup.json');
 const legacyOrdersFilePath = path.resolve(__dirname, '../../agent/orders.json');
 const webDistDir = path.resolve(__dirname, '../../web/dist');
 const maxChatMessageLength = 1000;
+const chatTurnTimeoutMs = Number(process.env.CHAT_TURN_TIMEOUT_MS) || 90 * 1000;
+
+// The abort reason is our own Error; LangGraph may also surface an AbortError. Treat both as a
+// timeout so the client gets 504 instead of a generic 500.
+function controllerSignalAborted(error) {
+  if (!error) return false;
+  if (error.name === 'AbortError') return true;
+  return /timed out/i.test(String(error.message ?? ''));
+}
+// Security headers for the SPA. The CSP allowlists only the third parties the app actually loads:
+// Google Fonts (styles.css), the PayPal SDK, and Google Maps embeds/reviews thumbnails.
+const PAYPAL_ORIGINS = 'https://www.paypal.com https://www.sandbox.paypal.com';
+const GOOGLE_FONT_ORIGINS = 'https://fonts.googleapis.com https://fonts.gstatic.com';
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' ${PAYPAL_ORIGINS}`,
+  `style-src 'self' 'unsafe-inline' ${GOOGLE_FONT_ORIGINS}`,
+  `font-src 'self' ${GOOGLE_FONT_ORIGINS}`,
+  `img-src 'self' data: ${PAYPAL_ORIGINS} https://*.google.com https://*.googleusercontent.com https://spice-anker.de`,
+  `connect-src 'self' ${PAYPAL_ORIGINS}`,
+  `frame-src 'self' ${PAYPAL_ORIGINS} https://www.google.com`,
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+// Origins allowed to call the API from a browser. Same-origin requests need no CORS headers, so an
+// empty list is the safe default; set CORS_ORIGINS for a separate frontend host.
+const allowedCorsOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+function securityHeaders(_req, res, next) {
+  res.set('Content-Security-Policy', contentSecurityPolicy);
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+}
+
+// Bounds how fast one client can create new chat threads and new verification attempts. The agent
+// counts failed customer-number checks per thread and per client, so without this a caller could
+// reset the limit by asking for a fresh threadId. Behind the Fly/production proxy set
+// TRUST_PROXY=true, otherwise every request shares the proxy's address and the per-client budget
+// would apply globally. The hop count stays at 1 so X-Forwarded-For cannot be spoofed by clients.
+const chatRateLimiter = createRateLimiter({
+  limit: Number(process.env.CHAT_RATE_LIMIT) || 30,
+  windowMs: 60 * 1000,
+});
+const newThreadRateLimiter = createRateLimiter({
+  limit: Number(process.env.CHAT_NEW_THREAD_RATE_LIMIT) || 5,
+  windowMs: 60 * 1000,
+});
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
+
+function rateLimitKey(req) {
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+function tooManyRequests(res, retryAfterSeconds) {
+  res.set('Retry-After', String(retryAfterSeconds));
+  return res.status(429).json({ error: 'Zu viele Anfragen. Bitte versuche es später erneut.' });
+}
+
+// Binds a chat thread to the client that first used it. All customers share one chat credential, so
+// without this any holder could append messages to another conversation by supplying its UUID.
+// Scope matches the agent's in-memory MemorySaver: a restart drops both, so nothing outlives it.
+const threadOwners = new Map();
+const MAX_TRACKED_THREADS = 10000;
+
+/**
+ * Records `threadId` for `clientKey`, or reports whether this client already owns it.
+ *
+ * @returns {boolean} true when the thread is new or owned by this client.
+ */
+function claimThread(threadId, clientKey) {
+  const owner = threadOwners.get(threadId);
+  if (owner === undefined) {
+    if (threadOwners.size >= MAX_TRACKED_THREADS) {
+      threadOwners.delete(threadOwners.keys().next().value);
+    }
+    threadOwners.set(threadId, clientKey);
+    return true;
+  }
+  return owner === clientKey;
+}
 const paymentReceivedMessage =
   '(System: the PayPal payment for this order was received successfully. Call finalize_order now and confirm the order to the customer.)';
 
@@ -114,12 +209,12 @@ function hashToken(token) {
 }
 
 function isTokenValid(token) {
-  if (!token) {
+  if (!token || !configuredAdminTokenHash) {
     return false;
   }
 
   const incoming = hashToken(token);
-  const expected = String(adminTokenHash);
+  const expected = String(configuredAdminTokenHash);
 
   if (incoming.length !== expected.length) {
     return false;
@@ -286,6 +381,10 @@ function writeContent(data) {
 }
 
 function requireAdminToken(req, res, next) {
+  if (!configuredAdminTokenHash) {
+    return res.status(503).json({ error: 'Admin authentication is not configured.' });
+  }
+
   const authHeader = req.get('authorization') || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
 
@@ -352,19 +451,22 @@ async function readOrderFile(filePath) {
   }
 }
 
-// Moves all current orders to the backup file, then empties orders.json.
+// Moves all current orders to the backup file, then empties orders.json. Uses the same lock as
+// finalizeOrder, so an order written during a backup cannot be truncated away.
 export async function backupOrders() {
-  const orders = await readOrderFile(ordersFilePath);
-  if (orders.length === 0) return 0;
-  const backup = await readOrderFile(ordersBackupFilePath);
-  await fs.promises.writeFile(
-    ordersBackupFilePath,
-    JSON.stringify([...backup, ...orders], null, 2),
-    'utf8'
-  );
-  await fs.promises.writeFile(ordersFilePath, '[]', 'utf8');
-  console.log(`[backup] moved ${orders.length} order(s) to ${ordersBackupFilePath}`);
-  return orders.length;
+  return withFileLock('orders', async () => {
+    const orders = await readOrderFile(ordersFilePath);
+    if (orders.length === 0) return 0;
+    const backup = await readOrderFile(ordersBackupFilePath);
+    await fs.promises.writeFile(
+      ordersBackupFilePath,
+      JSON.stringify([...backup, ...orders], null, 2),
+      'utf8'
+    );
+    await fs.promises.writeFile(ordersFilePath, '[]', 'utf8');
+    console.log(`[backup] moved ${orders.length} order(s) to ${ordersBackupFilePath}`);
+    return orders.length;
+  });
 }
 
 const upload = multer({
@@ -385,7 +487,18 @@ const upload = multer({
 
 ensureStorage();
 
-app.use(cors());
+app.use(securityHeaders);
+// Same-origin requests send no Origin header and are always allowed. Cross-origin callers must be
+// listed in CORS_ORIGINS, so an unknown site cannot read API responses with a user's credentials.
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedCorsOrigins.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(webDistDir));
 
@@ -448,6 +561,35 @@ app.post('/api/chat', requireChatCredentials, async (req, res) => {
     return res.status(400).json({ error: 'Ungültige Sitzung.' });
   }
 
+  // Per-client budget for chat turns, plus a tighter budget for first messages that open a new
+  // thread. A new thread gets a fresh failed-verification allowance in the agent, so that is the
+  // path an attacker would use to walk the customer-number space.
+  const clientKey = rateLimitKey(req);
+  if (!claimThread(threadId, clientKey)) {
+    logConversation('thread_owner_mismatch', { threadId, clientKey });
+    return res.status(403).json({ error: 'Diese Sitzung gehört zu einem anderen Gerät.' });
+  }
+  const chatLimit = chatRateLimiter.hit(clientKey);
+  if (!chatLimit.allowed) {
+    logConversation('rate_limited', { threadId, scope: 'chat', retryAfterSeconds: chatLimit.retryAfterSeconds });
+    return tooManyRequests(res, chatLimit.retryAfterSeconds);
+  }
+  if (start === true) {
+    const newThreadLimit = newThreadRateLimiter.hit(clientKey);
+    if (!newThreadLimit.allowed) {
+      logConversation('rate_limited', {
+        threadId,
+        scope: 'new_thread',
+        retryAfterSeconds: newThreadLimit.retryAfterSeconds,
+      });
+      return tooManyRequests(res, newThreadLimit.retryAfterSeconds);
+    }
+  }
+  if (verificationBlocked(threadId, clientKey)) {
+    logConversation('verification_locked', { threadId, clientKey });
+    return res.status(429).json({ error: 'Zu viele fehlgeschlagene Versuche. Bitte starte einen neuen Chat.' });
+  }
+
   let text = start === true ? getChatStartMessage(req.get('accept-language')) : message;
   if (paymentCompleted === true) {
     const payment = await getPayment(threadId);
@@ -469,10 +611,21 @@ app.post('/api/chat', requireChatCredentials, async (req, res) => {
   });
 
   try {
-    const result = await agent.invoke(
-      { messages: [{ role: 'user', content: text.trim() }] },
-      { configurable: { thread_id: threadId } }
-    );
+    // Caps how long one turn can run, so a stuck model call cannot hold the request open or burn
+    // budget indefinitely. The signal is honoured by LangGraph and aborts the run.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(new Error('chat turn timed out')), chatTurnTimeoutMs);
+
+    let result;
+    try {
+      result = await agent.invoke(
+        { messages: [{ role: 'user', content: text.trim() }] },
+        { configurable: { thread_id: threadId, client_id: clientKey }, signal: controller.signal }
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+
     const lastMessage = result.messages[result.messages.length - 1];
     const payment = await getPayment(threadId);
     await logAgentTurn(threadId, result.messages, payment);
@@ -483,6 +636,11 @@ app.post('/api/chat', requireChatCredentials, async (req, res) => {
         : {}),
     });
   } catch (error) {
+    const timedOut = controllerSignalAborted(error);
+    if (timedOut) {
+      logConversation('agent_timeout', { threadId, timeoutMs: chatTurnTimeoutMs });
+      return res.status(504).json({ error: 'Die Anfrage hat zu lange gedauert. Bitte versuche es erneut.' });
+    }
     console.error('[chat] agent error:', error);
     logConversation('agent_error', { threadId, error: error.message });
     return res.status(500).json({ error: 'Die Nachricht konnte nicht verarbeitet werden.' });
@@ -499,6 +657,10 @@ app.post('/api/paypal/create-order', requireChatCredentials, async (req, res) =>
   const { threadId } = req.body || {};
   if (!validThreadId(threadId)) {
     return res.status(400).json({ error: 'Ungültige Sitzung.' });
+  }
+  if (!claimThread(threadId, rateLimitKey(req))) {
+    logPayment('thread_owner_mismatch', { threadId, scope: 'create_order' });
+    return res.status(403).json({ error: 'Diese Sitzung gehört zu einem anderen Gerät.' });
   }
   try {
     const payment = await getPayment(threadId);
@@ -528,6 +690,10 @@ app.post('/api/paypal/capture-order', requireChatCredentials, async (req, res) =
   const { threadId, orderID } = req.body || {};
   if (!validThreadId(threadId) || typeof orderID !== 'string') {
     return res.status(400).json({ error: 'Ungültige Anfrage.' });
+  }
+  if (!claimThread(threadId, rateLimitKey(req))) {
+    logPayment('thread_owner_mismatch', { threadId, scope: 'capture_order' });
+    return res.status(403).json({ error: 'Diese Sitzung gehört zu einem anderen Gerät.' });
   }
   try {
     const payment = await getPayment(threadId);

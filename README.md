@@ -8,7 +8,7 @@ Dieses Projekt enthalt:
 ## Features
 
 - Home-Seite mit Infos zu Restaurant, Chef, indischer Kuche, Adresse, Offnungszeiten
-- Home-Seite mit Chef-Profilbild und Galerie fur Dish-Bilder
+- Home-Seite mit Chef-Profilbild und "Signature Dishes"-Karussell aus den optimierten Gerichtsfotos
 - Header/Home mit Logo-Unterstutzung (`logoUrl`) und direktem Menu-PDF Schnellzugriff
 - Teaser-Bereich fur kommende Angebote
 - Footer mit Instagram-, Facebook- und X-Handles
@@ -36,6 +36,23 @@ npm run dev
 
 - Frontend: `http://localhost:5173`
 - Server: `http://localhost:4000`
+
+## Signature Dishes (Gerichtsfotos)
+
+Die Fotos im Karussell auf der Home-Seite werden nicht uber das Admin-Formular gepflegt, sondern
+beim Build aus den Originaldateien erzeugt:
+
+1. Neue Fotos als `NN_name.png` in `packages/web/assets/dishes-source/` ablegen (`NN` = Reihenfolge).
+   Der Ordner liegt bewusst ausserhalb von `public/`, damit Vite die ~34 MB PNGs nicht mitbaut.
+2. `npm run dishes -w @restaurant/web` ausfuehren.
+
+Das Skript schreibt nach `packages/web/public/dishes/` je Foto ein 400px- und ein 800px-WebP, die
+gleichen Breiten als JPEG-Fallback sowie ein 32px-Platzhalterbild, und aktualisiert
+`packages/web/src/dishes.js`. Aus 34 MB PNG werden so rund 3 MB. `npm run build` fuehrt das Skript
+automatisch mit aus, ein vergessenes Neu-Erzeugen kann also nicht passieren.
+
+Die Fotos sind quadratisch und tragen den Gerichtenamen bereits im Bild, deshalb zeigt das
+Karussell sie unbeschnitten und ohne separate Bildunterschrift.
 
 ## Admin Token
 
@@ -90,6 +107,77 @@ OLLAMA_BASE_URL=https://ollama.com OLLAMA_API_KEY=<dein-key> AGENT_MODEL=ollama:
 
 `OLLAMA_BASE_URL` zeigt lokal standardmassig auf `http://127.0.0.1:11434`; fuer Ollama Cloud muss es auf `https://ollama.com` zeigen. Fly.io setzt die Cloud-URL ueber `fly.toml`.
 
+## Bestellen mit Menue-Codes
+
+Der Agent zeigt nach der Begruessung sofort die komplette Speisekarte. Jede Kategorie hat eine
+Nummer (1, 2, 3 ...) und jedes Gericht darin einen Buchstaben (a, b, c ...). Zusammen ergibt das den
+Bestell-Code, zum Beispiel `1b` = Kategorie 1, zweites Gericht. Danach wird die Kundennummer
+abgefragt; nach der Pruefung bestellt der Kunde direkt per Code ("1b", "2c und 16c").
+
+- Die Nummerierung kommt aus der Position im Menue und ignoriert die Tageszeit. `1b` bezeichnet
+  mittags und abends dasselbe Gericht, auch wenn einzelne Kategorien nur zu einer Tageszeit
+  angeboten werden (fehlende Nummern sind normal).
+- `resolveMenuCode()` in `packages/agent/agent.js` loest einen Code serverseitig auf; Preise,
+  Allergene und Bestellpositionen stammen immer aus den Menuedaten, nie aus dem Modell.
+- `get_full_menu` liefert das komplette Menue mit Codes, `get_categories`,
+  `get_flavours_by_category` und `find_flavour` geben die Codes ebenfalls mit aus.
+
+## Kundennummer im Browser merken
+
+Nach einer erfolgreichen Pruefung merkt sich der Tab die Kundennummer in `sessionStorage`
+(`ankerVerifiedCustomerV1`). Ein Reload innerhalb der Bestellung sendet sie beim Chat-Start mit, und
+der Agent begruesst den Kunden direkt mit der Speisekarte, ohne erneut nach der Nummer zu fragen.
+
+- Das gilt nur fuer die laufende Bestellung: mit dem Schliessen des Tabs ist die Nummer weg.
+- Sobald die Bestellung abgeschlossen ist (PayPal-Zahlung eingegangen und `finalize_order` gelaufen),
+  antwortet der Server mit `orderPlaced: true`. Die Seite loescht dann die Nummer, blendet das
+  Eingabefeld aus und bietet **Neue Bestellung** an; ein Reload startet ebenfalls eine neue
+  Bestellung und fragt wieder nach der Nummer.
+- Die Nummer wird serverseitig erneut geprueft (`verifyCustomerNumber`) und zaehlt bei einem
+  Fehlversuch in dasselbe Limit wie `verify_customer_number`. Ein manipulierter Speicherwert
+  verschafft also keinen Vorteil und verbraucht Fehlversuche.
+- Ist die gemerkte Nummer nicht mehr gueltig, antwortet der Server mit `customerNumberRejected: true`.
+  Die Seite loescht sie dann, damit beim naechsten Reload wieder gefragt wird, statt jedes Mal
+  einen Fehlversuch zu verbrauchen.
+- Die Chat-Zugangsdaten (`user`/`password` aus der URL) werden fuer den Tab ebenfalls in
+  `sessionStorage` gehalten (`ankerChatCredentialsV1`), damit ein Reload den Chat fortsetzen kann.
+  Ein neuer Tab braucht weiterhin den Link.
+
+## Speisekarte im Chat
+
+Die Speisekarte steht direkt im Chat: die Begruessung liefert sie als `menu` mit, und die Seite
+rendert sie unter der Begruessung (`GET /api/order-menu` liefert dieselben Daten fuer andere
+Aufrufer). Kategorien tragen ihre Menue-Nummer, Gerichte ihren Buchstaben, zusammen den Bestell-Code
+(`1b`). Das Modell wiederholt das komplette Menue nicht mehr, sondern nennt nur den Code-Hinweis und
+fragt die Kundennummer ab.
+
+- Der Chat scrollt mit der Seite; nur das Eingabefeld bleibt unten sichtbar (`position: sticky`).
+  So ist das lange Menue auf dem Handy ein einziger, natuerlicher Scroll ohne verschachtelte Box.
+- Auf Bildschirmen bis 680 px scrollt die Kopfzeile mit, statt zwei Navigationszeilen dauerhaft
+  ueber dem Inhalt zu halten.
+
+## Aktuelle Bestellungen und Push-Benachrichtigung
+
+`/currentOrders` liest den Admin-Token selbst aus `sessionStorage`. Nach dem Login auf `/admin`
+fuehrt der Link **Aktuelle Bestellungen** deshalb direkt auf die Bestellliste statt zurueck zum
+Login (der Token existiert erst nach dem Login, ein beim App-Render uebergebenes Prop waere leer).
+
+Neue Bestellungen erscheinen ohne Neuladen: der Server bietet einen Server-Sent-Events-Stream an
+(`GET /api/admin/orders/stream`), der beim Abschluss einer Bestellung (`finalizeOrder`) ein
+`order.placed`-Event pusht.
+
+- Die Seite abonniert den Stream per `EventSource` und zeigt ein Banner ("1 neue Bestellung
+  eingegangen") mit Kunde und Betrag sowie einen Live-Indikator. Danach laedt sie die Liste neu,
+  damit alle Spalten aus derselben Quelle kommen.
+- `EventSource` kann keinen `Authorization`-Header senden, daher nimmt der Stream den Token als
+  Query-Parameter und prueft ihn vor dem Oeffnen. Ohne gueltigen Token: `401`.
+- Nach einem Verbindungsabbruch verbindet sich der Browser selbst neu und der Server schickt die
+  verpassten Events aus einem Ringpuffer (50 Events) nach; Keep-Alive-Kommentare halten Proxys
+  davon ab, die Verbindung zu schliessen.
+- Der Push laeuft im selben Prozess wie der Agent. Bei mehreren Instanzen (z. B. mehreren
+  Fly-Machines) erreicht ein Event nur die Clients der Instanz, die die Bestellung abgeschlossen
+  hat; dafuer waere ein gemeinsamer Broker noetig.
+
 ## Chat-Schutz vor Missbrauch
 
 Der Chat ist durch Limits geschuetzt, die im Code und nicht nur im Prompt stehen:
@@ -119,21 +207,30 @@ geschrieben, damit keine bezahlte Bestellung verloren geht.
 
 ## API Endpoints
 
+Die Routen sind in `packages/server/src/index.js` in drei Gruppen sortiert: oeffentlich, Bestellung, Admin.
+
+Oeffentlich:
+
+- `GET /api/health` - Liveness-Probe
 - `GET /api/content` - Offentliche Inhalte fur Frontend
-- `GET /api/reviews` - Google Reviews (Live aus Places API wenn konfiguriert, sonst Fallback aus gespeicherten Inhalten)
-- `PUT /api/admin/content` - Inhalte aktualisieren (Bearer Token erforderlich)
-- `POST /api/admin/menu` - Menu PDF hochladen (Bearer Token erforderlich)
-- `POST /api/admin/auth` - Token prufen fur Admin Login
+- `GET /api/menu` - Mittags- und Abendkarte (ohne Bestell-Codes)
+- `GET /api/order-menu` - Komplette Speisekarte mit Menue-Codes fuer die aktuelle Tageszeit
 - `GET /menu.pdf` - Speisekarte inline im Browser anzeigen
 
-## Google Reviews einrichten
+Bestellung (HTTP Basic mit `CHAT_USER` / `CHAT_PASSWORD`):
 
-1. Optional im Admin unter `/admin/edit` den `Google Place ID` hinterlegen.
-2. Auf dem Server die Umgebungsvariable `GOOGLE_PLACES_API_KEY` setzen.
-3. Wenn kein API Key gesetzt ist, nutzt die Website automatisch die im Admin gepflegten Fallback-Reviews.
+- `POST /api/chat` - Eine Chat-Runde; liefert Antwort, Menue-Karte, gemerkte Kundennummer und Zahlungsstatus
+- `GET /api/paypal/config` - PayPal Client-ID fur das SDK
+- `POST /api/paypal/create-order` - PayPal-Order fur die offene Zahlung anlegen
+- `POST /api/paypal/capture-order` - Zahlung nach Freigabe einziehen (Betrag und Waehrung werden geprueft)
 
-Beispiel:
+Admin (Bearer Token erforderlich):
 
-```bash
-GOOGLE_PLACES_API_KEY=<dein-key> npm run start
-```
+- `POST /api/admin/auth` - Token prufen fur Admin Login
+- `PUT /api/admin/content` - Inhalte aktualisieren
+- `POST /api/admin/menu` - Menu PDF hochladen
+- `GET /api/admin/customers` / `PUT /api/admin/customers` - Kundenliste lesen und ersetzen
+- `GET /api/admin/orders/stream` - Live-Benachrichtigung neuer Bestellungen (SSE, Token als Query-Parameter)
+- `GET /api/admin/orders-backup` - Stuendliches Bestell-Backup herunterladen
+- `GET /api/orders` - Bestellungen inklusive Zahlungsdaten
+- `GET /api/payments` - Zahlungsdatensaetze

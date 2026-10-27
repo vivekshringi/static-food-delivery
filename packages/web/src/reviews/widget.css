@@ -1,0 +1,1087 @@
+/* ==========================================================================
+   Google Reviews Slider — self-contained, scoped under .gr-reviews
+   Theme by overriding the custom properties on .gr-reviews
+   ========================================================================== */
+
+.gr-reviews {
+  --gr-bg: #fbf8f2;
+  --gr-surface: #ffffff;
+  --gr-ink: #14140f;
+  --gr-muted: #6e6c61;
+  --gr-line: rgba(20, 20, 15, 0.1);
+  --gr-accent: #1a73e8;
+  --gr-star: #f2a93b;
+  --gr-radius: 26px;
+  --gr-card-w: min(760px, 86vw);
+  --gr-gap: clamp(16px, 2vw, 28px);
+  --gr-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --gr-serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, serif;
+
+  box-sizing: border-box;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* The whole component is designed to sit inside one screen: it fills the
+     viewport and lays its three parts out as a column that shares the space. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100svh;
+  min-height: 300px;
+  padding: clamp(12px, 2.4vh, 40px) 0;
+  background: var(--gr-bg);
+  color: var(--gr-ink);
+  font-family: var(--gr-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.gr-reviews *,
+.gr-reviews *::before,
+.gr-reviews *::after {
+  box-sizing: border-box;
+}
+
+/* Defensive reset — :where() keeps specificity at 0,1,0 so the component's
+   own rules below still win, while host-page element selectors (h2, p,
+   button, img, a …) can no longer leak in. */
+.gr-reviews :where(h1, h2, h3, h4, p, figure, figcaption, blockquote, ul, li,
+    div, span, button, a, img, svg) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-transform: none;
+  text-decoration: none;
+  letter-spacing: inherit;
+  text-align: inherit;
+  box-shadow: none;
+  float: none;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  min-width: 0;
+  min-height: 0;
+  position: static;
+  transform: none;
+  opacity: 1;
+  list-style: none;
+}
+
+.gr-reviews :where(img, svg) {
+  display: block;
+  vertical-align: middle;
+}
+
+.gr-reviews__glow {
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 70%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 55% at 18% 30%, rgba(242, 169, 59, 0.16), transparent 70%),
+    radial-gradient(42% 60% at 82% 12%, rgba(26, 115, 232, 0.12), transparent 72%);
+  filter: blur(6px);
+}
+
+.gr-reviews__inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+}
+
+/* ---------------------------------------------------------------- header */
+
+.gr-reviews__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: clamp(6px, 1.1vh, 16px);
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto clamp(10px, 2.2vh, 40px);
+}
+
+.gr-reviews__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 13px 5px 7px;
+  border: 1px solid var(--gr-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
+  font-size: clamp(0.62rem, 1.5vh, 0.78rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gr-muted);
+}
+
+.gr-gbadge {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+
+.gr-gbadge svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.gr-reviews__title {
+  margin: 0;
+  font-size: clamp(1.35rem, min(4.4vw, 4.2vh), 3.25rem);
+  line-height: 1.06;
+  letter-spacing: -0.028em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.gr-reviews__title em {
+  font-family: var(--gr-serif);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.gr-reviews__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 18px;
+  margin-top: 4px;
+}
+
+.gr-reviews__score {
+  font-size: clamp(1.3rem, 3.4vh, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gr-reviews__score-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.gr-reviews__count {
+  font-size: clamp(0.68rem, 1.6vh, 0.82rem);
+  color: var(--gr-muted);
+}
+
+.gr-reviews__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gr-line);
+  background: var(--gr-surface);
+  color: var(--gr-ink);
+  font-size: clamp(0.7rem, 1.6vh, 0.84rem);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.gr-reviews__link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(20, 20, 15, 0.22);
+  box-shadow: 0 8px 20px -12px rgba(20, 20, 15, 0.5);
+}
+
+.gr-reviews__link svg {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.25s ease;
+}
+
+.gr-reviews__link:hover svg {
+  transform: translateX(3px);
+}
+
+/* ----------------------------------------------------------------- stars */
+
+.gr-stars {
+  display: inline-flex;
+  gap: 2px;
+  line-height: 0;
+}
+
+.gr-star {
+  width: 15px;
+  height: 15px;
+  fill: rgba(20, 20, 15, 0.14);
+  flex: none;
+}
+
+.gr-star.is-on {
+  fill: var(--gr-star);
+}
+
+.gr-stars--lg .gr-star {
+  width: 17px;
+  height: 17px;
+}
+
+/* ---------------------------------------------------------------- slider */
+
+.gr-slider {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.gr-slider__viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  outline: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Room for the cards to travel vertically as they fan out in 3D. Scales
+     with the viewport so the fan never pushes the card out of the section. */
+  padding-block: clamp(28px, 7vh, 120px) clamp(32px, 8vh, 136px);
+}
+
+.gr-slider__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.gr-slider__viewport:focus-visible {
+  outline: 2px solid var(--gr-accent);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+
+.gr-slider__viewport.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+
+.gr-slider__viewport.is-dragging .gr-card {
+  user-select: none;
+}
+
+.gr-slider__track {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  /* Definite height so the cards' height:100% resolves against the viewport
+     instead of falling back to their content height. */
+  height: 100%;
+  gap: var(--gr-gap);
+  padding-inline: max(0px, calc((100% - var(--gr-card-w)) / 2));
+  will-change: scroll-position;
+  /* Perspective lives on the track so every card shares one vanishing point
+     at the centre of the strip. */
+  perspective: 1924px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
+}
+
+@media (min-width: 900px) {
+  .gr-slider__viewport {
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 5%,
+      #000 95%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 5%,
+      #000 95%,
+      transparent 100%
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ card */
+
+/* Outer element: scroll-snap target only. It must never be transformed, or
+   the browser snaps to the transformed box and the carousel drifts. */
+.gr-card {
+  position: relative;
+  flex: 0 0 var(--gr-card-w);
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  opacity: 0.55;
+  /* Cards take the height the viewport gives them; content that does not fit
+     scrolls inside the card instead of growing the page. */
+  height: 100%;
+  min-height: 0;
+}
+
+/* Inner element: all visuals and the 3D fan-out live here. */
+.gr-card__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vh, 16px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 20, 15, 0.18) transparent;
+  padding: clamp(16px, 2.4vh, 34px) clamp(18px, 2.6vw, 36px);
+  border: 1px solid var(--gr-line);
+  border-radius: var(--gr-radius);
+  background: var(--gr-surface);
+  box-shadow:
+    0 1px 2px rgba(20, 20, 15, 0.04),
+    0 24px 48px -32px rgba(20, 20, 15, 0.45);
+  transform: translate3d(0, var(--gr-y, 0px), var(--gr-z, 0px))
+    rotateX(var(--gr-rot, 0deg));
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.gr-card.is-active {
+  opacity: 1;
+}
+
+.gr-card.is-active .gr-card__inner {
+  box-shadow:
+    0 1px 2px rgba(20, 20, 15, 0.05),
+    0 30px 60px -34px rgba(20, 20, 15, 0.5);
+}
+
+.gr-card::after {
+  content: "\201D";
+  position: absolute;
+  right: 20px;
+  bottom: 6px;
+  font-family: var(--gr-serif);
+  font-size: 6rem;
+  line-height: 1;
+  color: rgba(20, 20, 15, 0.05);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gr-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.gr-card__date {
+  font-size: 0.78rem;
+  color: var(--gr-muted);
+  white-space: nowrap;
+}
+
+.gr-card__quote {
+  margin: 0;
+  /* Never shrinks: its height is governed by --gr-clamp, so flex must not
+     squeeze it or the last line gets cut in half. The gallery absorbs the
+     leftover height instead. */
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: hidden;
+  font-size: clamp(0.86rem, min(1.5vw, 1.9vh), 1.24rem);
+  line-height: 1.55;
+  letter-spacing: -0.006em;
+  color: #23231c;
+  overflow-wrap: anywhere;
+}
+
+/* Quotes are drawn here rather than in the markup so a short review can set
+   them large without duplicating the text. */
+.gr-card__quote::before {
+  content: "\201C";
+}
+
+.gr-card__quote::after {
+  content: "\201D";
+}
+
+/* Quote + "Read more" as one block, so a card without photos can centre the
+   pair in the space the gallery would otherwise have taken. */
+.gr-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* No gallery: the text is the whole card, so let it sit in the middle of the
+   leftover space instead of hugging the top and leaving a blank lower half. */
+.gr-card.is-text-only .gr-card__body {
+  margin-block: auto;
+}
+
+/* A very short review cannot fill the card with type alone. It is centred and
+   set as a pull-quote with an oversized opening mark, so the space reads as
+   intentional instead of empty. */
+.gr-card.is-text-only.is-short .gr-card__body {
+  text-align: center;
+}
+
+.gr-card.is-text-only.is-short .gr-card__quote {
+  text-wrap: balance;
+}
+
+.gr-card.is-text-only.is-short .gr-card__quote::before {
+  display: block;
+  margin-bottom: -0.34em;
+  font-family: var(--gr-serif);
+  font-size: 2.6em;
+  line-height: 0.8;
+  color: rgba(20, 20, 15, 0.16);
+}
+
+.gr-card.is-text-only.is-short .gr-card__quote::after {
+  content: none;
+}
+
+.gr-card__quote.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: var(--gr-clamp, 6);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gr-card__more {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  margin-top: -6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gr-accent);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.gr-card__more:hover {
+  text-decoration: underline;
+}
+
+.gr-card__more:focus-visible {
+  outline: 2px solid var(--gr-accent);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- photos */
+
+.gr-card__photos {
+  /* The mosaic is driven by the layout pass: it sets the strip's height and writes
+     every tile's width and height in pixels from the photo's own aspect ratio, so
+     the tiles are never stretched out of shape and `cover` has nothing to crop.
+     `align-items: flex-start` keeps the flex line from overriding those heights. */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+  margin-inline: auto;
+  max-width: 100%;
+  /* Height is assigned by the layout pass in JS, which measures the space the
+     card actually has. No min-height here — it would fight that allocation. */
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* Three photos: a tall hero on the left, two stacked on the right. */
+.gr-card__photos[data-count="3"] {
+  display: grid;
+  grid-template-columns: auto auto;
+  /* Rows size to the tiles the layout pass wrote, so the hero spans exactly two. */
+  grid-template-rows: auto auto;
+  align-content: start;
+  align-items: start;
+  justify-content: center;
+}
+
+/* Tile sizes are written in pixels by the layout pass; the grid only places them. */
+.gr-card__photos[data-count="3"] .gr-photo,
+.gr-card__photos .gr-photo {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.gr-card__photos[data-count="3"] .gr-photo:first-child {
+  grid-row: span 2;
+}
+
+.gr-photo {
+  position: relative;
+  display: block;
+  /* The width must come from `aspect-ratio`, never from the flex line: with
+     `width: auto` the flex algorithm still stretches the item to its base size,
+     which overrides the ratio and the photo inside gets cropped again. Pinning the
+     basis to the content (auto) and forbidding growth keeps the derived width. */
+  height: 100%;
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f1efe8;
+  cursor: zoom-in;
+  isolation: isolate;
+}
+
+/* Soft blurred fill behind the image, visible only while it loads. */
+.gr-photo::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: -1;
+  background-image: var(--gr-photo-bg, none);
+  background-size: cover;
+  background-position: center;
+  filter: blur(26px) brightness(0.8) saturate(1.2);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.gr-photo picture {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gr-photo img {
+  width: 100%;
+  height: 100%;
+  /* Tiles are large enough now that cover crops only a sliver, and it fills
+     the frame instead of leaving letterbox bands. */
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gr-photo:hover img {
+  transform: scale(1.04);
+}
+
+.gr-photo:focus-visible {
+  outline: 2px solid var(--gr-accent);
+  outline-offset: 2px;
+}
+
+/* "+N" overlay on the last visible tile. */
+.gr-photo__more {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(12, 12, 9, 0.55);
+  backdrop-filter: blur(2px);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------- chips */
+
+.gr-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+/* Progressive compaction for short viewports — applied by the layout pass. */
+.gr-card.is-compact .gr-card__chips {
+  display: none;
+}
+
+
+
+.gr-card.is-compact .gr-card__inner {
+  gap: clamp(6px, 1vh, 10px);
+  padding: clamp(12px, 1.8vh, 20px) clamp(14px, 2vw, 22px);
+}
+
+.gr-card.is-compact .gr-card__quote {
+  font-size: clamp(0.8rem, min(1.4vw, 1.7vh), 1rem);
+}
+
+.gr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(20, 20, 15, 0.045);
+  color: #4a4940;
+  font-size: clamp(0.64rem, 1.4vh, 0.74rem);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.gr-chip svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- author */
+
+.gr-card__author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding-top: clamp(8px, 1.4vh, 16px);
+  border-top: 1px solid var(--gr-line);
+}
+
+.gr-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex: none;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: linear-gradient(
+    140deg,
+    hsl(var(--h, 210) 62% 62%),
+    hsl(calc(var(--h, 210) + 38) 68% 44%)
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.gr-card__who {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gr-card__name {
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gr-card__meta {
+  font-size: 0.76rem;
+  color: var(--gr-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gr-card__g {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  opacity: 0.85;
+}
+
+/* -------------------------------------------------------------- controls */
+
+.gr-slider__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.6vw, 18px);
+  margin-top: clamp(8px, 1.6vh, 28px);
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
+.gr-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--gr-line);
+  background: var(--gr-surface);
+  color: var(--gr-ink);
+  cursor: pointer;
+  flex: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.gr-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.gr-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -14px rgba(20, 20, 15, 0.6);
+}
+
+.gr-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+
+.gr-btn:focus-visible {
+  outline: 2px solid var(--gr-accent);
+  outline-offset: 3px;
+}
+
+.gr-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.gr-btn--ghost {
+  width: 36px;
+  height: 36px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--gr-muted);
+}
+
+.gr-btn--ghost svg {
+  width: 14px;
+  height: 14px;
+}
+
+.gr-slider__progress {
+  position: relative;
+  width: clamp(90px, 22vw, 220px);
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(20, 20, 15, 0.1);
+  overflow: hidden;
+}
+
+.gr-slider__progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: inherit;
+  background: var(--gr-ink);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gr-slider__counter {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gr-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  min-width: 62px;
+  text-align: center;
+}
+
+.gr-slider__counter b {
+  color: var(--gr-ink);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------- lightbox */
+
+.gr-lb {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 48px);
+  background: rgba(12, 12, 9, 0.86);
+  backdrop-filter: blur(10px);
+  animation: gr-fade 0.25s ease both;
+}
+
+.gr-lb[hidden] {
+  display: none;
+}
+
+.gr-lb__fig {
+  margin: 0;
+  max-width: min(92vw, 900px);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.gr-lb__fig img {
+  max-width: 100%;
+  max-height: 78vh;
+  border-radius: 16px;
+  object-fit: contain;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.8);
+  animation: gr-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gr-lb__fig figcaption {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.gr-lb__close,
+.gr-lb__nav {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.gr-lb__close:hover,
+.gr-lb__nav:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.gr-lb__close:focus-visible,
+.gr-lb__nav:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.gr-lb__close {
+  top: clamp(12px, 3vw, 28px);
+  right: clamp(12px, 3vw, 28px);
+}
+
+.gr-lb__nav {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.gr-lb__nav--prev {
+  left: clamp(8px, 2vw, 28px);
+}
+
+.gr-lb__nav--next {
+  right: clamp(8px, 2vw, 28px);
+}
+
+.gr-lb__nav[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------- animation */
+
+.gr-reviews__head,
+.gr-slider {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gr-reviews.is-visible .gr-reviews__head,
+.gr-reviews.is-visible .gr-slider {
+  opacity: 1;
+  transform: none;
+}
+
+.gr-reviews.is-visible .gr-slider {
+  transition-delay: 0.12s;
+}
+
+@keyframes gr-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes gr-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* ------------------------------------------------------------ responsive */
+
+@media (max-width: 640px) {
+  .gr-reviews {
+    --gr-card-w: 88vw;
+    --gr-radius: 22px;
+  }
+
+  /* The 3D fan needs far less headroom on a narrow screen. */
+  .gr-slider__viewport {
+    padding-block: clamp(20px, 5vh, 56px) clamp(24px, 6vh, 64px);
+  }
+
+  .gr-card::after {
+    font-size: 4rem;
+    right: 16px;
+  }
+
+  .gr-card__photos {
+    gap: 6px;
+  }
+
+  .gr-photo {
+    border-radius: 12px;
+  }
+
+  .gr-reviews__summary {
+    gap: 8px 14px;
+  }
+
+  .gr-reviews__link {
+    margin-left: 0;
+  }
+}
+
+/* Short viewports (landscape phones, small laptops): trim the header so the
+   card keeps enough room for its content. */
+@media (max-height: 700px) {
+  .gr-reviews__eyebrow {
+    display: none;
+  }
+
+  .gr-reviews__head {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .gr-reviews__summary {
+    gap: 6px 12px;
+    margin-top: 0;
+  }
+
+  .gr-reviews__link {
+    padding: 5px 11px;
+  }
+
+  .gr-slider__controls {
+    margin-top: 6px;
+  }
+
+  .gr-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .gr-btn--ghost {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-height: 560px) {
+  .gr-reviews__title {
+    font-size: clamp(1.1rem, 3.4vh, 1.5rem);
+  }
+
+  .gr-reviews__count {
+    display: none;
+  }
+
+  .gr-slider__viewport {
+    padding-block: 16px 20px;
+  }
+}
+
+/* Landscape phones: the header collapses to a single line so the card keeps
+   the bulk of the height. */
+@media (max-height: 460px) {
+  .gr-reviews {
+    padding-block: 8px;
+  }
+
+  .gr-reviews__head {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .gr-reviews__title {
+    font-size: clamp(0.95rem, 3.2vh, 1.25rem);
+  }
+
+  .gr-reviews__summary {
+    gap: 4px 10px;
+  }
+
+  .gr-reviews__score {
+    font-size: 1.1rem;
+  }
+
+  .gr-slider__viewport {
+    padding-block: 10px 14px;
+  }
+
+  .gr-slider__controls {
+    margin-top: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-reviews *,
+  .gr-reviews *::before,
+  .gr-reviews *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .gr-reviews__head,
+  .gr-slider {
+    opacity: 1;
+    transform: none;
+  }
+}

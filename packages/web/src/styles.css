@@ -102,6 +102,10 @@ main {
 
 .page {
   display: grid;
+  /* An implicit grid column sizes to max-content, so a horizontally scrolling child (the dish
+     carousel) would stretch the whole page instead of scrolling inside it. `minmax(0, 1fr)` pins
+     the column to the container width and lets such children scroll as intended. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -301,19 +305,169 @@ h1 {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.dish-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.7rem;
-  margin-top: 0.6rem;
+/* ---------------------------------------------------------- dish showcase */
+
+.dishes-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.dish-image {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 12px;
+.dishes-head h2 {
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-size: 1.45rem;
+}
+
+.dishes-nav {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dishes-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
   border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+
+.dishes-arrow svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dishes-arrow:hover:not(:disabled) {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fffdf8;
+}
+
+.dishes-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dishes-arrow:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The scroller. Native overflow does the work: touch swipe, trackpad, and the arrow keys once the
+   region has focus all work without JavaScript. */
+.dish-track {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.85rem 0 0;
+  padding: 0.15rem 0 0.6rem;
+  list-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  /* Tells the browser it may chain vertical gestures to the page rather than trapping them. */
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(29, 31, 36, 0.22) transparent;
+}
+
+.dish-track:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.dish-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.dish-track::-webkit-scrollbar-thumb {
+  background: rgba(29, 31, 36, 0.22);
+  border-radius: 999px;
+}
+
+.dish-slide {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  width: clamp(180px, 26vw, 250px);
+}
+
+/* The photo is square and branded, so it is shown whole rather than cropped to a wide tile. */
+.dish-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: #f2ece1;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(35, 35, 35, 0.1);
+}
+
+.dish-photo picture,
+.dish-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dish-photo img {
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 320ms ease, transform 420ms ease;
+}
+
+.dish-photo img.is-loaded {
+  opacity: 1;
+}
+
+.dish-slide:hover .dish-photo img.is-loaded {
+  transform: scale(1.035);
+}
+
+/* Dots: one per photo, doubling as a labelled jump target for screen readers. */
+.dishes-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.dishes-dots button {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(29, 31, 36, 0.22);
+  cursor: pointer;
+  transition: background 160ms ease, width 160ms ease;
+}
+
+.dishes-dots button:hover {
+  background: var(--brand-soft);
+}
+
+.dishes-dots button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .offers {
@@ -710,8 +864,8 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .dish-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .dish-slide {
+    width: clamp(170px, 30vw, 220px);
   }
 
   .topbar {
@@ -729,7 +883,10 @@ button:disabled {
     padding: 0.72rem 0.72rem 1.5rem;
   }
 
+  /* Two rows of navigation would cover a large part of a phone screen, so on small screens the
+     header scrolls away instead of staying on top of the content. */
   .topbar {
+    position: static;
     flex-direction: column;
     align-items: stretch;
   }
@@ -755,8 +912,14 @@ button:disabled {
     min-height: 240px;
   }
 
-  .dish-grid {
-    grid-template-columns: 1fr;
+  .dish-slide {
+    width: min(74vw, 260px);
+  }
+
+  /* A phone has no hover, so the arrows are less useful than the swipe; keep them but smaller. */
+  .dishes-arrow {
+    width: 2.1rem;
+    height: 2.1rem;
   }
 
   .header-actions {

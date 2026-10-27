@@ -15,6 +15,7 @@ import { getPayment, updatePayment } from "./payments.js";
 import { logPayment } from "./logger.js";
 import { createRateLimiter } from "./rate-limit.js";
 import { withFileLock } from "./file-lock.js";
+import { publishOrderEvent } from "../server/src/order-events.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../..");
@@ -26,7 +27,7 @@ process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
 process.env.LANGSMITH_TRACING = process.env.LANGSMITH_TRACING ?? "";
 process.env.LANGSMITH_ENDPOINT = process.env.LANGSMITH_ENDPOINT ?? "";
 process.env.LANGSMITH_PROJECT = process.env.LANGSMITH_PROJECT ?? "";
-
+// process.env.OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "";
 // Any model string accepted by LangChain's `initChatModel` works here, e.g.
 // "openai:gpt-4o", "ollama:llama3.1" or "ollama:deepseek-v4.1-flash:cloud".
 // Ollama needs a tool-calling capable model and the "@langchain/ollama" package;
@@ -201,18 +202,52 @@ function availableFlavours(period = getPricePeriod()) {
   );
 }
 
-/** Full menu for one period ("day" = lunch, "evening" = dinner), grouped by category. */
+/**
+ * Letter for a flavour position inside its category: a, b, c ... z, aa, ab ...
+ * Combined with the category number it gives the short order code, e.g. "1b".
+ */
+function flavourLetter(index) {
+  let letters = "";
+  let remaining = index;
+  do {
+    letters = String.fromCharCode(97 + (remaining % 26)) + letters;
+    remaining = Math.floor(remaining / 26) - 1;
+  } while (remaining >= 0);
+  return letters;
+}
+
+/**
+ * Full menu for one period ("day" = lunch, "evening" = dinner), grouped by category.
+ *
+ * Categories are numbered by their position in the menu and flavours are lettered inside their
+ * category. The numbering ignores availability, so a code such as "1b" names the same dish at
+ * lunch and at dinner, even though a few categories are only served in one of the periods.
+ */
 export function getMenuForPeriod(period) {
   if (period !== "day" && period !== "evening") throw new TypeError("period must be day or evening");
   const categories = menu.items
-    .map((category) => ({
-      category: category.category,
-      description: category.description ?? "",
-      flavours: category.flavours
-        .map((flavour) => toFlavour(category, flavour, period))
-        .filter((flavour) => flavour !== undefined)
-        .map(({ name, description, price, allergens }) => ({ name, description, price, allergens })),
-    }))
+    .map((category, categoryIndex) => {
+      const number = categoryIndex + 1;
+      return {
+        number,
+        category: category.category,
+        description: category.description ?? "",
+        flavours: category.flavours
+          .map((flavour) => toFlavour(category, flavour, period))
+          .filter((flavour) => flavour !== undefined)
+          .map(({ name, description, price, allergens }, flavourIndex) => {
+            const letter = flavourLetter(flavourIndex);
+            return {
+              code: `${number}${letter}`,
+              letter,
+              name,
+              description,
+              price,
+              allergens,
+            };
+          }),
+      };
+    })
     .filter((category) => category.flavours.length > 0);
   return {
     currency: menu.currency ?? "EUR",
@@ -221,6 +256,53 @@ export function getMenuForPeriod(period) {
     allergenLegend: menu.allergen_legend ?? {},
   };
 }
+
+const MENU_CODE_PATTERN = /^\s*(\d{1,3})\s*([a-z]{1,3})\s*$/i;
+
+/**
+ * Resolves an order code such as "1b" or "12a" to the dish it names in the given period.
+ * Returns undefined when the code does not exist or the dish is not served right now.
+ */
+export function resolveMenuCode(code, period = getPricePeriod()) {
+  const match = MENU_CODE_PATTERN.exec(String(code ?? ""));
+  if (!match) return undefined;
+  const number = Number(match[1]);
+  const letter = match[2].toLowerCase();
+  const category = getMenuForPeriod(period).categories.find((entry) => entry.number === number);
+  const flavour = category?.flavours.find((entry) => entry.letter === letter);
+  if (!flavour) return undefined;
+  return {
+    ...flavour,
+    category: category.category,
+    categoryDescription: category.description,
+  };
+}
+
+/**
+ * Maps "category|flavour" (both normalised) to its menu code, so tools that return flavours can
+ * add the same code the customer sees in the menu.
+ */
+function menuCodeIndex(period = getPricePeriod()) {
+  const index = new Map();
+  for (const category of getMenuForPeriod(period).categories) {
+    for (const flavour of category.flavours) {
+      index.set(`${norm(category.category)}|${norm(flavour.name)}`, {
+        number: category.number,
+        letter: flavour.letter,
+        code: flavour.code,
+      });
+    }
+  }
+  return index;
+}
+
+/** Maps a normalised category name to its menu number. */
+function menuNumberIndex(period = getPricePeriod()) {
+  return new Map(
+    getMenuForPeriod(period).categories.map((category) => [norm(category.category), category.number])
+  );
+}
+
 
 function toCategorySummary(category) {
   return {
@@ -380,47 +462,59 @@ const getCurrentTimeTool = tool(
   }
 );
 
-const verifyCustomerNumberTool = tool(
-  async ({ customerNumber }, config) => {
-    const threadId = config?.configurable?.thread_id;
-    const clientId = config?.configurable?.client_id;
+/**
+ * Verifies a customer number and counts a failure exactly like the chat tool does.
+ *
+ * Used both by the verify_customer_number tool and by the chat start, where a returning customer
+ * sends the number stored on their device. Keeping one implementation means a stored number gets
+ * the same per-thread and per-client failure budget, so it cannot be used to guess numbers.
+ *
+ * @returns {{ valid: boolean, locked?: boolean, remainingAttempts?: number, error?: string }}
+ */
+export function verifyCustomerNumber(customerNumber, { threadId, clientId } = {}) {
+  if (verificationBlocked(threadId, clientId)) {
+    logPayment("verification_blocked", { threadId, clientId });
+    return {
+      valid: false,
+      locked: true,
+      error: "Too many failed attempts. Do not try again; end the conversation politely.",
+    };
+  }
 
-    if (verificationBlocked(threadId, clientId)) {
-      logPayment("verification_blocked", { threadId, clientId });
-      return {
+  let valid = false;
+  try {
+    valid = hasCustomerNumber(customerNumber);
+  } catch {
+    valid = false;
+  }
+
+  if (valid) {
+    clearVerificationAttempts(threadId);
+    return { valid: true };
+  }
+
+  const status = recordFailedVerification(threadId, clientId);
+  logPayment("verification_failed", {
+    threadId,
+    clientId,
+    remaining: status.remaining,
+    locked: !status.allowed,
+  });
+  return status.allowed
+    ? { valid: false, remainingAttempts: status.remaining }
+    : {
         valid: false,
         locked: true,
         error: "Too many failed attempts. Do not try again; end the conversation politely.",
       };
-    }
+}
 
-    let valid = false;
-    try {
-      valid = hasCustomerNumber(customerNumber);
-    } catch {
-      valid = false;
-    }
-
-    if (valid) {
-      clearVerificationAttempts(threadId);
-      return { valid: true };
-    }
-
-    const status = recordFailedVerification(threadId, clientId);
-    logPayment("verification_failed", {
-      threadId,
-      clientId,
-      remaining: status.remaining,
-      locked: !status.allowed,
-    });
-    return status.allowed
-      ? { valid: false, remainingAttempts: status.remaining }
-      : {
-          valid: false,
-          locked: true,
-          error: "Too many failed attempts. Do not try again; end the conversation politely.",
-        };
-  },
+const verifyCustomerNumberTool = tool(
+  async ({ customerNumber }, config) =>
+    verifyCustomerNumber(customerNumber, {
+      threadId: config?.configurable?.thread_id,
+      clientId: config?.configurable?.client_id,
+    }),
   {
     name: "verify_customer_number",
     description:
@@ -431,15 +525,30 @@ const verifyCustomerNumberTool = tool(
   }
 );
 
+const getFullMenuTool = tool(
+  async () => getMenuForPeriod(getPricePeriod()),
+  {
+    name: "get_full_menu",
+    description:
+      "Return the complete menu for the current time of day. Every category has a menu number and every flavour inside it has a letter, so each dish has a code such as '1b'. Show the whole menu with those codes.",
+    schema: z.object({}),
+  }
+);
+
 const getCategoriesTool = tool(
   async () => ({
     period: getPricePeriod(),
-    categories: getCategories(false),
+    // The number is the category's place in the menu, so it matches the full menu and the codes.
+    categories: getMenuForPeriod(getPricePeriod()).categories.map(({ number, category, description }) => ({
+      number,
+      category,
+      description,
+    })),
   }),
   {
     name: "get_categories",
     description:
-      "List the categories that can be ordered right now, each with its description, in menu order. Show the description with every category.",
+      "List the categories that can be ordered right now, each with its menu number and description, in menu order. Show the description with every category.",
     schema: z.object({}),
   }
 );
@@ -453,22 +562,29 @@ const getFlavoursByCategoryTool = tool(
     if (flavours.length === 0) {
       return { found: false, message: `No flavours available for category "${category}".` };
     }
+    const codes = menuCodeIndex();
     return {
       found: true,
       period: getPricePeriod(),
       currency: menu.currency,
-      flavours: flavours.map(({ category: flavourCategory, name, description, price }) => ({
-        category: flavourCategory,
-        name,
-        ...(description ? { description } : {}),
-        price,
-      })),
+      flavours: flavours.map(({ category: flavourCategory, name, description, price }) => {
+        const code = codes.get(`${norm(flavourCategory)}|${norm(name)}`);
+        return {
+          code: code?.code,
+          number: code?.number,
+          letter: code?.letter,
+          category: flavourCategory,
+          name,
+          ...(description ? { description } : {}),
+          price,
+        };
+      }),
     };
   },
   {
     name: "get_flavours_by_category",
     description:
-      "List the flavours (name and current price) of the category the customer chose. Only flavours that can be ordered right now are returned. Use the exact category name from get_categories.",
+      "List the flavours (menu code, name and current price) of the category the customer chose. Only flavours that can be ordered right now are returned. Use the exact category name from get_categories.",
     schema: z.object({
       category: z.string().describe("The chosen category name."),
     }),
@@ -481,7 +597,21 @@ const getCategoriesByFlavourTool = tool(
     if (categories.length === 0) {
       return { found: false, message: `No category offers "${flavourName}" right now.` };
     }
-    return { found: true, period: getPricePeriod(), currency: menu.currency, categories };
+    const codes = menuCodeIndex();
+    const numbers = menuNumberIndex();
+    return {
+      found: true,
+      period: getPricePeriod(),
+      currency: menu.currency,
+      categories: categories.map((category) => ({
+        ...category,
+        number: numbers.get(norm(category.category)),
+        flavours: category.flavours.map((flavour) => ({
+          ...flavour,
+          code: codes.get(`${norm(category.category)}|${norm(flavour.name)}`)?.code,
+        })),
+      })),
+    };
   },
   {
     name: "get_categories_by_flavour",
@@ -499,11 +629,13 @@ const getFlavoursByMinPriceTool = tool(
     if (flavours.length === 0) {
       return { found: false, message: "No flavours match that price." };
     }
+    const codes = menuCodeIndex();
     return {
       found: true,
       period: getPricePeriod(),
       currency: menu.currency,
       flavours: flavours.map(({ category: flavourCategory, name, price }) => ({
+        code: codes.get(`${norm(flavourCategory)}|${norm(name)}`)?.code,
         category: flavourCategory,
         name,
         price,
@@ -522,19 +654,46 @@ const getFlavoursByMinPriceTool = tool(
   }
 );
 
+// Resolves the dish a customer chose. The menu code (for example "1b") is checked first, so a
+// code always names the dish the menu showed, then the flavour name within its category.
 const findFlavourTool = tool(
-  async ({ flavourName, category }) => {
+  async ({ flavourName, category, code }) => {
+    const byCode = code ? resolveMenuCode(code) : undefined;
+    if (byCode) {
+      return {
+        found: true,
+        period: getPricePeriod(),
+        currency: menu.currency,
+        flavours: [
+          {
+            code: byCode.code,
+            category: byCode.category,
+            name: byCode.name,
+            ...(byCode.description ? { description: byCode.description } : {}),
+            price: byCode.price,
+            allergens: describeAllergens(byCode.allergens),
+          },
+        ],
+      };
+    }
     const matches = category
       ? [findFlavourByName(flavourName, category)].filter((flavour) => flavour !== undefined)
-      : findFlavoursByName(flavourName);
+      : findFlavoursByName(flavourName ?? "");
     if (matches.length === 0) {
-      return { found: false, message: `No flavour "${flavourName}" is available right now.` };
+      return {
+        found: false,
+        message: code
+          ? `The menu code "${code}" is not available right now.`
+          : `No flavour "${flavourName}" is available right now.`,
+      };
     }
+    const codes = menuCodeIndex();
     return {
       found: true,
       period: getPricePeriod(),
       currency: menu.currency,
       flavours: matches.map((flavour) => ({
+        code: codes.get(`${norm(flavour.category)}|${norm(flavour.name)}`)?.code,
         category: flavour.category,
         name: flavour.name,
         ...(flavour.description ? { description: flavour.description } : {}),
@@ -546,9 +705,10 @@ const findFlavourTool = tool(
   {
     name: "find_flavour",
     description:
-      "Look up the current price and allergens of the flavour the customer chose. The same name can exist in several categories at different prices, so pass the category; if several come back, ask the customer which one.",
+      "Look up the current price and allergens of the dish the customer chose. Pass the menu code (for example '1b') when the customer ordered by code. The same name can exist in several categories at different prices, so otherwise pass the flavour name with its category; if several come back, ask the customer which one.",
     schema: z.object({
-      flavourName: z.string().describe("The flavour name, e.g. 'Butter Chicken'."),
+      code: z.string().optional().describe("Menu code of the dish, e.g. '1b'."),
+      flavourName: z.string().optional().describe("The flavour name, e.g. 'Butter Chicken'."),
       category: z.string().optional().describe("The category the flavour was chosen from."),
     }),
   }
@@ -563,8 +723,11 @@ export function priceOrder(orderedItems, comment) {
   const period = getPricePeriod();
   const items = [];
   const unavailable = [];
-  for (const { name, category } of orderedItems) {
-    const flavour = findFlavourByName(name, category, period);
+  for (const { name, category, code } of orderedItems) {
+    // A menu code always wins: it is unambiguous even when a flavour name exists in several
+    // categories, and it is what the customer sees in the menu.
+    const byCode = code ? resolveMenuCode(code, period) : undefined;
+    const flavour = byCode ?? findFlavourByName(name, category, period);
     if (flavour) {
       items.push({
         name: flavour.name,
@@ -573,7 +736,7 @@ export function priceOrder(orderedItems, comment) {
         allergens: describeAllergens(flavour.allergens),
       });
     } else {
-      unavailable.push(`${name} (${category})`);
+      unavailable.push(code ? `${code} (${name})` : `${name} (${category})`);
     }
   }
   if (unavailable.length > 0) {
@@ -610,6 +773,10 @@ export function buildOrder(customerNumber, orderedItems, comment) {
 const orderItemsSchema = z
   .array(
     z.object({
+      code: z
+        .string()
+        .optional()
+        .describe("Menu code of the dish, e.g. '1b'. Use it whenever the customer ordered by code."),
       name: z.string().describe("Exact flavour name."),
       category: z.string().describe("Exact category the flavour belongs to."),
     })
@@ -681,6 +848,19 @@ export async function finalizeOrder(threadId) {
     total: order.total,
     currency: order.currency,
   });
+
+  // Tells the admin order screen about the new order. Only the fields the list needs, never the
+  // whole payment record.
+  publishOrderEvent("order.placed", {
+    sessionId: threadId,
+    customerNumber: order.customerNumber,
+    total: order.total,
+    currency: order.currency,
+    itemCount: order.items.length,
+    comment: order.comment ?? null,
+    time: order.time,
+  });
+
   return { saved: true, order };
 }
 
@@ -774,6 +954,7 @@ export const agent = createDeepAgent({
     getCurrentTimeTool,
     verifyCustomerNumberTool,
     getCategoriesTool,
+    getFullMenuTool,
     getFlavoursByCategoryTool,
     getCategoriesByFlavourTool,
     getFlavoursByMinPriceTool,

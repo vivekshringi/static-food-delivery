@@ -1,0 +1,125 @@
+/**
+ * Home page integration for the review-collector slider.
+ *
+ * `widget.css` is the component as developed: it fills `100svh` and hides overflow, because it was
+ * built to be the whole screen of its own page. On the home page it sits inside a section between the
+ * hero and the signature dishes, so a fixed section height replaces the viewport height and the fan
+ * padding is reduced to suit an inline block.
+ *
+ * The height matters more than it looks. The layout pass in `widget.js` measures the space a card
+ * actually has and hands it to the text and the photo mosaic; with no height there is nothing to
+ * distribute and the review collapses. It also drives how much of each photo is visible — the mosaic
+ * is height-driven, so a taller section means larger photographs.
+ *
+ * 820px is the size at which the mosaic of a three-photo card fills roughly two thirds of the card
+ * width, which is where the photos stop looking like thumbnails. The narrower breakpoints step down
+ * because the card gets narrower with them, and the mosaic needs less height to fill it.
+ *
+ * Theming reuses the site palette so the component reads as part of the page rather than an embed.
+ */
+
+.gr-reviews {
+  /* Site palette, mapped onto the component's own custom properties. */
+  --gr-bg: transparent;
+  --gr-surface: var(--surface);
+  --gr-ink: var(--ink);
+  --gr-muted: var(--subtle);
+  --gr-line: rgba(29, 31, 36, 0.12);
+  --gr-accent: var(--accent);
+  --gr-star: var(--brand);
+  --gr-radius: var(--radius-xl);
+  --gr-font: "Space Grotesk", sans-serif;
+  --gr-serif: "Fraunces", serif;
+  /* Wider than the full-screen default so the section fills the 1120px shell. */
+  --gr-card-w: min(720px, 84vw);
+
+  /* Inline placement instead of a full screen. */
+  height: 820px;
+  min-height: 0;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 1120px;
+}
+
+/* The glow is tuned for a dark full-screen background; on the light page it reads as a smudge. */
+.gr-reviews .gr-reviews__glow {
+  display: none;
+}
+
+/* Only enough fan travel to keep the neighbouring cards visible, not a full screen's worth. */
+.gr-reviews .gr-slider__viewport {
+  padding-block: clamp(24px, 4vh, 48px) clamp(28px, 4.4vh, 52px);
+}
+
+/* Compact screens: shrink the whole section, and tighten the fan proportionally. */
+@media (max-width: 900px) {
+  .gr-reviews {
+    height: 800px;
+    --gr-card-w: min(680px, 88vw);
+  }
+
+  .gr-reviews .gr-slider__viewport {
+    padding-block: 32px 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .gr-reviews {
+    height: 780px;
+    --gr-card-w: min(640px, 92vw);
+  }
+
+  .gr-reviews .gr-slider__viewport {
+    padding-block: 26px 30px;
+  }
+}
+
+@media (max-width: 420px) {
+  .gr-reviews {
+    height: 760px;
+    --gr-card-w: 90vw;
+  }
+
+  .gr-reviews .gr-slider__viewport {
+    padding-block: 20px 24px;
+  }
+}
+
+/* Spacing for the section's slot on the home page; the slider brings its own surfaces. */
+.reviews-section {
+  margin: 2.5rem 0;
+}
+
+/**
+ * Never crop a review photo.
+ *
+ * Each tile is given its own photo's aspect ratio by the layout pass, so `cover`
+ * has nothing left to trim; `contain` is kept as a belt-and-braces guard for a
+ * missing ratio. The blurred backdrop painted behind every tile fills any gap.
+ */
+.gr-reviews .gr-card__photos .gr-photo img {
+  object-fit: cover;
+}
+/* The header wraps onto three stacked blocks on a phone and ate a third of the
+   section, starving the card. Tighten it so the mosaic keeps its height. */
+@media (max-width: 640px) {
+  .gr-reviews .gr-reviews__head {
+    gap: 4px;
+  }
+
+  .gr-reviews .gr-reviews__title {
+    font-size: clamp(20px, 5.6vw, 26px);
+  }
+
+  .gr-reviews .gr-reviews__score {
+    font-size: clamp(28px, 8vw, 36px);
+  }
+
+  .gr-reviews .gr-reviews__eyebrow {
+    font-size: 11px;
+  }
+
+  .gr-reviews .gr-reviews__count {
+    font-size: 11px;
+  }
+}

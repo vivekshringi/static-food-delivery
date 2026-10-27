@@ -5,17 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "node scripts/optimize-dishes.mjs && vite build",
+    "preview": "vite preview",
+    "dishes": "node scripts/optimize-dishes.mjs"
   },
   "dependencies": {
+    "@paypal/paypal-server-sdk": "^2.5.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.4",
-    "@paypal/paypal-server-sdk": "^2.5.0"
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "sharp": "^0.35.5",
     "vite": "^5.4.2"
   }
 }

@@ -1,12 +1,38 @@
+/**
+ * Root of the SPA: fetches `/api/content` once and renders every public page plus the admin screens.
+ *
+ * Layout is `header → routes → footer → cookie banner`, with the routes rendered only after content
+ * loads. Content is fetched here rather than per page because every page needs it (brand, footer,
+ * offers, impressum), and pages that need live data (`MenuPage`, `OrdersPage`, `ChatPage`) fetch their
+ * own.
+ *
+ * The admin edit form is the only writer: it PUTs the full content document back, so normalization and
+ * validation stay on the server.
+ *
+ * `ADMIN_TOKEN_KEY` must match the one in `OrdersPage.jsx`.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import ChatPage from "./ChatPage.jsx";
+import DishShowcase from "./DishShowcase.jsx";
 import OrdersPage from "./OrdersPage.jsx";
+import ReviewsSlider from "./reviews/ReviewsSlider.jsx";
 import "./ordering.css";
 
 const ADMIN_TOKEN_KEY = "adminTokenSessionV1";
+// Matches scheme-relative and absolute URLs ("//cdn…", "https://…", "data:…").
 const ABSOLUTE_URL_PATTERN = /^(?:[a-z]+:)?\/\//i;
 
+/**
+ * Turns the multi-line address from content.json into one search string for Google Maps.
+ *
+ * Line breaks are meaningless in a map query, so "Wendenstraße 197\n20537 Hamburg" becomes
+ * "Wendenstraße 197, 20537 Hamburg".
+ *
+ * @param {string} address Address as stored in the admin form.
+ * @returns {string} Comma-separated query, or `""` when the address is empty.
+ */
 function buildGoogleMapsLocationQuery(address) {
   return String(address || "")
     .split("\n")
@@ -15,11 +41,29 @@ function buildGoogleMapsLocationQuery(address) {
     .join(", ");
 }
 
+/**
+ * Builds the Google Maps embed URL for the home page map.
+ *
+ * @param {string} address Address as stored in the admin form.
+ * @returns {string} Embed URL, or `""` when there is no address (the map block is then skipped).
+ */
 function buildGoogleMapsEmbedUrl(address) {
   const query = buildGoogleMapsLocationQuery(address);
   return query ? `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed` : "";
 }
 
+/**
+ * Resolves an image URL from content.json for the built app.
+ *
+ * Content stores site-relative paths like `/images/entrance.png`, but the bundle may be served
+ * under a base path, so those are rebased onto `BASE_URL`. Absolute, `data:` and `blob:` URLs are
+ * passed through untouched, and a blank value falls back to `fallbackUrl` — which is why a mistyped
+ * admin field shows a working image instead of a broken one.
+ *
+ * @param {string} url Preferred image URL from content.
+ * @param {string} fallbackUrl Image to use when `url` is blank.
+ * @returns {string} URL ready for an `<img src>`; `""` when both inputs are empty.
+ */
 function resolveImageUrl(url, fallbackUrl) {
   const candidate = String(url || "").trim() || String(fallbackUrl || "").trim();
 
@@ -35,6 +79,19 @@ function resolveImageUrl(url, fallbackUrl) {
   return `${import.meta.env.BASE_URL}${normalized}`;
 }
 
+/**
+ * `<img>` that swaps to a fallback once if the configured source fails to load.
+ *
+ * The content URLs are entered by hand in the admin form, so a typo would otherwise leave a broken
+ * image on the home page. The swap happens once (`resolvedSrc !== resolvedFallback` guard), which
+ * avoids an infinite error loop when the fallback is missing too. The source is re-resolved whenever
+ * `src` or `fallbackSrc` change, so saving new content updates the image without a reload.
+ *
+ * @param {object} props
+ * @param {string} props.src Preferred image URL.
+ * @param {string} props.fallbackSrc Used when `src` is blank or fails to load.
+ * @param {...object} props Rest spread onto the `<img>` (alt, className, …).
+ */
 function SafeImage({ src, fallbackSrc, ...props }) {
   const resolvedFallback = useMemo(() => resolveImageUrl(fallbackSrc, fallbackSrc), [fallbackSrc]);
   const [resolvedSrc, setResolvedSrc] = useState(() => resolveImageUrl(src, fallbackSrc));
@@ -43,6 +100,7 @@ function SafeImage({ src, fallbackSrc, ...props }) {
     setResolvedSrc(resolveImageUrl(src, fallbackSrc));
   }, [src, fallbackSrc]);
 
+  // One-time fallback swap: without the equality guard a missing fallback would loop forever.
   function handleError() {
     if (resolvedFallback && resolvedSrc !== resolvedFallback) {
       setResolvedSrc(resolvedFallback);
@@ -52,6 +110,12 @@ function SafeImage({ src, fallbackSrc, ...props }) {
   return <img {...props} src={resolvedSrc} onError={handleError} />;
 }
 
+// Empty starting point for the admin edit form, mirroring the fields content.json stores. Multi-value
+// fields are kept as newline-separated text (`offersText`) and split on save, so the admin edits one
+// item per line instead of learning a JSON syntax.
+//
+// The dish photos are not part of this form: they are a build artefact generated from
+// `assets/dishes-source` by `scripts/optimize-dishes.mjs`, not editable content.
 const initialFormState = {
   restaurantName: "",
   logoUrl: "",
@@ -64,8 +128,6 @@ const initialFormState = {
   taxId: "",
   timing: "",
   offersText: "",
-  dishImagesText: "",
-  dishCaptionsText: "",
   instagram: "",
   facebook: "",
   wolt: "",
@@ -82,11 +144,24 @@ const initialFormState = {
   impressumDisputeResolution: ""
 };
 
+/**
+ * App shell: loads the shared content document, renders the header/footer, and routes every page.
+ *
+ * Content is fetched once here instead of per page; `loadContent` is also handed to `AdminEditPage`
+ * as `onUpdated`, so saving or uploading a menu refreshes the whole shell without a reload.
+ */
 function App() {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /**
+   * Fetches the current content document from `/api/content`.
+   *
+   * Any failure is surfaced in the error banner and leaves the routes unmounted, because every page
+   * reads `content` and half-rendering without it would show blank headings. Also used as the
+   * post-save refresh callback for the admin form.
+   */
   async function loadContent() {
     setLoading(true);
     setError("");
@@ -143,10 +218,9 @@ function App() {
             <Route path="/ordernow" element={<ChatPage />} />
             <Route path="/bestellen" element={<Navigate to="/ordernow" replace />} />
             <Route path="/chat" element={<Navigate to="/ordernow" replace />} />
-            <Route
-              path="/currentOrders"
-              element={<OrdersPage token={sessionStorage.getItem(ADMIN_TOKEN_KEY) || ""} />}
-            />
+            {/* OrdersPage reads the admin token itself: the token is stored after the App has
+                rendered, so a prop captured here would still be empty and bounce to the login. */}
+            <Route path="/currentOrders" element={<OrdersPage />} />
             <Route path="/orders" element={<Navigate to="/currentOrders" replace />} />
             <Route path="/impressum" element={<ImpressumPage content={content} />} />
             <Route path="/admin" element={<AdminAuthPage />} />
@@ -162,9 +236,16 @@ function App() {
   );
 }
 
+/**
+ * Landing page: hero, signature dishes, address with an embedded map, opening hours, offers, delivery
+ * partners and the drinks partner.
+ *
+ * Every block is conditional on its content field, so removing an entry in the admin form removes the
+ * block instead of leaving an empty heading.
+ *
+ * @param {{ content: object }} props Normalised content from `/api/content`.
+ */
 function HomePage({ content }) {
-  const dishImages = Array.isArray(content.dishImages) ? content.dishImages : [];
-  const dishCaptions = Array.isArray(content.dishCaptions) ? content.dishCaptions : [];
   const delivery = content.delivery || {};
   const drinks = content.drinks || {};
   const entranceImageUrl = content.entranceImageUrl || "/images/entrance.png";
@@ -203,29 +284,9 @@ function HomePage({ content }) {
         </div>
       </div>
 
-      <section className="panel dishes-showcase">
-        <div className="dishes-head">
-          <h2>Signature Dishes</h2>
-          <p>Unsere beliebtesten Gerichte, frisch serviert und mit viel Geschmack.</p>
-        </div>
-        <div className="dish-grid signature-grid">
-          {dishImages.length ? (
-            dishImages.map((imageUrl, index) => (
-              <figure className="dish-card" key={`${imageUrl}-${index}`}>
-                <SafeImage
-                  src={imageUrl}
-                  fallbackSrc="/images/mango-sauce.png"
-                  alt={`Dish ${index + 1}`}
-                  className="dish-image"
-                />
-                <figcaption>{dishCaptions[index] || `Signature ${index + 1}`}</figcaption>
-              </figure>
-            ))
-          ) : (
-            <p>Derzeit sind keine Dish-Bilder hinterlegt.</p>
-          )}
-        </div>
-      </section>
+      <ReviewsSlider className="reviews-section" />
+
+      <DishShowcase />
 
       <div className="grid-details">
         <article className="panel">
@@ -334,6 +395,12 @@ function HomePage({ content }) {
   );
 }
 
+/**
+ * Site footer: social links (shown only when configured) and the impressum link the German
+ * Impressumspflicht requires on every page.
+ *
+ * @param {{ content: object }} props
+ */
 function SiteFooter({ content }) {
   const social = content.social || {};
 
@@ -371,6 +438,15 @@ function SiteFooter({ content }) {
   );
 }
 
+/**
+ * Printed menu page with a lunch/dinner tab switch.
+ *
+ * Fetches `/api/menu` itself (the shell does not) because the menu is large and only needed here. This
+ * is the readable menu without ordering codes; the codes live in the chat's menu card and
+ * `/api/order-menu`. A PDF link is always offered for printing.
+ *
+ * @param {{ content: object }} props `content.menuUrl` overrides the default `/menu.pdf`.
+ */
 function MenuPage({ content }) {
   const pdfUrl = content.menuUrl || "/menu.pdf";
   const [menus, setMenus] = useState(null);
@@ -434,6 +510,15 @@ function MenuPage({ content }) {
   );
 }
 
+/**
+ * Impressum page mandated by German law (§ 5 TMG / § 18 MStV).
+ *
+ * Every block renders only when its field is filled in, because inventing placeholder legal data would
+ * be wrong. The dispute-resolution paragraph and the EU ODR platform link are always shown: they are
+ * required, and the stored `disputeResolution` sentence is appended when present.
+ *
+ * @param {{ content: object }} props Legal fields come from `content.impressum` and `content.address`.
+ */
 function ImpressumPage({ content }) {
   const impressum = content.impressum || {};
   const addressLines = String(content.address || "").split("\n").map((line) => line.trim()).filter(Boolean);
@@ -502,12 +587,24 @@ function ImpressumPage({ content }) {
   );
 }
 
+/**
+ * Admin login: verifies the token against `/api/admin/auth` before storing it.
+ *
+ * The server is the only judge of the token; the value is written to `sessionStorage` (tab-scoped, not
+ * a cookie) only after it is accepted, and the token never appears in the URL. A rejected or failed
+ * check leaves the stored token untouched so the admin can correct a typo.
+ */
 function AdminAuthPage() {
   const navigate = useNavigate();
   const [token, setToken] = useState(() => sessionStorage.getItem(ADMIN_TOKEN_KEY) || "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  /**
+   * Submits the token, and on success stores it and moves to the edit page.
+   *
+   * @param {import('react').FormEvent} event Submit event from the login form.
+   */
   async function handleUnlock(event) {
     event.preventDefault();
     setError("");
@@ -562,6 +659,20 @@ function AdminAuthPage() {
   );
 }
 
+/**
+ * Admin editor: content fields, customer list, and menu PDF upload, all behind the admin token.
+ *
+ * Guards itself: on mount it re-validates the stored token with `/api/admin/auth` and clears it when
+ * the server rejects it, so a token revoked server-side cannot keep the form open. While that check
+ * runs, a placeholder is shown instead of the form, and without a token the route redirects to
+ * `/admin`.
+ *
+ * Saving sends the whole content document back to `PUT /api/admin/content`; the server normalises it
+ * and fills blanks from the defaults, so this form only has to collect the fields it shows.
+ *
+ * @param {{ content: object, onUpdated: () => Promise<void> }} props `onUpdated` re-fetches content so
+ *   the shell and other pages pick up the change.
+ */
 function AdminEditPage({ content, onUpdated }) {
   const navigate = useNavigate();
   const [token, setToken] = useState(() => sessionStorage.getItem(ADMIN_TOKEN_KEY) || "");
@@ -626,8 +737,6 @@ function AdminEditPage({ content, onUpdated }) {
       taxId: content.taxId || "",
       timing: content.timing || "",
       offersText: Array.isArray(content.offers) ? content.offers.join("\n") : "",
-      dishImagesText: Array.isArray(content.dishImages) ? content.dishImages.join("\n") : "",
-      dishCaptionsText: Array.isArray(content.dishCaptions) ? content.dishCaptions.join("\n") : "",
       instagram: content.social?.instagram || "",
       facebook: content.social?.facebook || "",
       wolt: content.delivery?.wolt || "",
@@ -654,29 +763,26 @@ function AdminEditPage({ content, onUpdated }) {
     [formState.offersText]
   );
 
-  const parsedDishImages = useMemo(
-    () =>
-      formState.dishImagesText
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean),
-    [formState.dishImagesText]
-  );
-
-  const parsedDishCaptions = useMemo(
-    () =>
-      formState.dishCaptionsText
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean),
-    [formState.dishCaptionsText]
-  );
-
+  /**
+   * Applies one field edit to the form state.
+   *
+   * Driven by the input's `name`, so the same handler serves every text input and textarea; the form
+   * state keys match the input names in `initialFormState`.
+   */
   function updateField(event) {
     const { name, value } = event.target;
     setFormState((prev) => ({ ...prev, [name]: value }));
   }
 
+  /**
+   * Saves the edited content and refreshes the shell.
+   *
+   * Newline-separated fields are split just before sending, so the API receives arrays rather than
+   * the text the admin typed. A failed save leaves the form values in place (nothing is reset) so the
+   * work is not lost; on success `onUpdated` re-fetches content.
+   *
+   * @param {import('react').FormEvent} event Submit event from the content form.
+   */
   async function handleSaveContent(event) {
     event.preventDefault();
     setStatus("");
@@ -694,9 +800,6 @@ function AdminEditPage({ content, onUpdated }) {
           restaurantName: formState.restaurantName,
           logoUrl: formState.logoUrl,
           entranceImageUrl: formState.entranceImageUrl,
-          chefName: content.chefName,
-          chefBio: content.chefBio,
-          chefImageUrl: content.chefImageUrl,
           cuisine: formState.cuisine,
           description: formState.description,
           address: formState.address,
@@ -704,8 +807,6 @@ function AdminEditPage({ content, onUpdated }) {
           mobile: formState.mobile,
           taxId: formState.taxId,
           timing: formState.timing,
-          dishImages: parsedDishImages,
-          dishCaptions: parsedDishCaptions,
           offers: parsedOffers,
           social: {
             instagram: formState.instagram,
@@ -762,6 +863,14 @@ function AdminEditPage({ content, onUpdated }) {
       .catch((err) => setError(err.message));
   }, [token]);
 
+  /**
+   * Saves the customer list, splitting the textarea on newlines, commas and semicolons.
+   *
+   * The server replaces the whole list and echoes back the normalised result, which is written back
+   * into the textarea so the admin sees exactly what was stored (trimmed, de-duplicated).
+   *
+   * @param {import('react').FormEvent} event Submit event from the customer form.
+   */
   async function handleCustomersSave(event) {
     event.preventDefault();
     setStatus("");
@@ -784,6 +893,15 @@ function AdminEditPage({ content, onUpdated }) {
     }
   }
 
+  /**
+   * Uploads the selected PDF as the new menu.
+   *
+   * Sends `multipart/form-data` with the file in the `menu` field; the token header is set explicitly
+   * because the browser must choose the multipart boundary itself. On success the shell is refreshed
+   * so the `menuUpdatedAt` shown to visitors changes.
+   *
+   * @param {import('react').FormEvent} event Submit event from the upload form.
+   */
   async function handleMenuUpload(event) {
     event.preventDefault();
     setStatus("");
@@ -821,6 +939,11 @@ function AdminEditPage({ content, onUpdated }) {
     }
   }
 
+  /**
+   * Forgets the admin token and returns to the login page.
+   *
+   * Uses `replace` so the edit URL is not left in the history behind the login screen.
+   */
   function handleLogout() {
     sessionStorage.removeItem(ADMIN_TOKEN_KEY);
     navigate("/admin", { replace: true });
@@ -916,24 +1039,6 @@ function AdminEditPage({ content, onUpdated }) {
           value={formState.offersText}
           onChange={updateField}
           rows={5}
-        />
-
-        <label htmlFor="dishImagesText">Dish Bilder (eine URL pro Zeile)</label>
-        <textarea
-          id="dishImagesText"
-          name="dishImagesText"
-          value={formState.dishImagesText}
-          onChange={updateField}
-          rows={4}
-        />
-
-        <label htmlFor="dishCaptionsText">Dish Captions (eine Zeile pro Bild, gleiche Reihenfolge)</label>
-        <textarea
-          id="dishCaptionsText"
-          name="dishCaptionsText"
-          value={formState.dishCaptionsText}
-          onChange={updateField}
-          rows={4}
         />
 
         <label htmlFor="instagram">Instagram URL</label>
@@ -1061,6 +1166,15 @@ function AdminEditPage({ content, onUpdated }) {
   );
 }
 
+/**
+ * GDPR cookie banner and preferences dialog.
+ *
+ * Stores the decision in `localStorage` (not `sessionStorage`) so it persists across visits, and the
+ * banner only appears while no decision exists. "Essential" is always on and not togglable; analytics
+ * and marketing default to off, so doing nothing is the privacy-preserving choice. Nothing on this site
+ * currently reads the optional flags — the dialog exists to collect a valid consent record
+ * (`essential`, `analytics`, `marketing`, `updatedAt`).
+ */
 function CookieConsent() {
   const storageKey = "cookieConsentV1";
   const [bannerVisible, setBannerVisible] = useState(false);
@@ -1090,6 +1204,14 @@ function CookieConsent() {
     }
   }, []);
 
+  /**
+   * Saves a consent decision, closes the banner and the dialog.
+   *
+   * `essential` is forced to `true` regardless of input, and `updatedAt` records when consent was
+   * given — the audit trail GDPR documentation expects.
+   *
+   * @param {{ essential: boolean, analytics: boolean, marketing: boolean }} nextPrefs
+   */
   function persist(nextPrefs) {
     localStorage.setItem(
       storageKey,
@@ -1104,14 +1226,17 @@ function CookieConsent() {
     setPrefsOpen(false);
   }
 
+  /** Consents to every category. */
   function acceptAll() {
     persist({ essential: true, analytics: true, marketing: true });
   }
 
+  /** Rejects everything optional, the same state as leaving the banner untouched. */
   function rejectOptional() {
     persist({ essential: true, analytics: false, marketing: false });
   }
 
+  /** Stores the categories as toggled in the dialog. */
   function saveCustom() {
     persist(prefs);
   }

@@ -75,23 +75,24 @@
   cursor: wait;
 }
 
+/* The transcript grows with its content and the page scrolls, so a long menu is one natural
+   scroll on a phone instead of a box inside a box. Only the composer stays in view. */
 .chat-workspace {
-  min-height: min(68vh, 680px);
   display: grid;
-  grid-template-rows: minmax(220px, 1fr) auto auto;
+  grid-template-rows: auto auto;
   border: 1px solid rgba(29, 31, 36, 0.14);
   border-radius: 8px;
   background: var(--surface);
-  overflow: hidden;
+  overflow: clip;
 }
 
 .chat-transcript {
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  overflow-y: auto;
   padding: 1rem;
+  /* Keeps the last dish reachable when the sticky composer floats over the transcript. */
+  padding-bottom: 5rem;
 }
 
 .chat-message {
@@ -125,7 +126,11 @@
   margin: 0 1rem 0.75rem;
 }
 
+/* Sticky, so the customer can type a code while the menu is still in view. */
 .chat-composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   gap: 0.65rem;
   padding: 0.8rem;
@@ -141,11 +146,194 @@
   align-items: center;
 }
 
+/* Menu card inside the chat: the customer sees the whole menu in the conversation and orders by
+   the codes shown here. */
+.chat-menu {
+  align-self: stretch;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(29, 31, 36, 0.12);
+  border-left: 3px solid var(--brand-soft);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.chat-menu-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.chat-menu-head p {
+  margin: 0.2rem 0 0;
+  color: var(--subtle);
+  font-size: 0.82rem;
+}
+
+.chat-menu-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.chat-menu-category {
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(29, 31, 36, 0.1);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.chat-menu-category h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.chat-menu-number {
+  flex: none;
+  min-width: 1.3rem;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.chat-menu-description {
+  margin: 0.25rem 0 0.45rem;
+  color: var(--subtle);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.chat-menu-category ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Code, dish and price in three columns: the code and price never wrap, long names do. */
+.chat-menu-category li {
+  display: grid;
+  grid-template-columns: 2.1rem minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.3rem 0;
+  border-bottom: 1px dotted rgba(29, 31, 36, 0.28);
+}
+
+.chat-menu-category li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.chat-menu-code {
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.chat-menu-flavour {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chat-menu-flavour small {
+  color: var(--subtle);
+}
+
+.chat-menu-price {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chat-new-order {
+  align-self: flex-start;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(29, 31, 36, 0.12);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.chat-new-order p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.chat-new-order button {
+  width: fit-content;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .orders-back {
   color: var(--brand);
   font-weight: 600;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+}
+
+.orders-new-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: #eaf5f1;
+  animation: riseIn 300ms ease;
+}
+
+.orders-new-banner strong {
+  display: block;
+}
+
+.orders-new-banner span {
+  color: var(--subtle);
+  font-size: 0.88rem;
+}
+
+.orders-new-banner button {
+  flex: none;
+  min-height: 40px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgba(29, 31, 36, 0.2);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.orders-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.orders-live.on {
+  color: #1c7a3d;
+}
+
+.orders-live.off {
+  color: var(--subtle);
 }
 
 .orders-toolbar {
@@ -230,17 +418,30 @@
     flex-direction: column;
   }
 
-  .chat-workspace {
-    min-height: min(66dvh, 650px);
-  }
-
   .chat-message {
     max-width: 92%;
+  }
+
+  .chat-menu {
+    padding: 0.7rem;
+  }
+
+  .chat-menu-grid {
+    grid-template-columns: 1fr;
   }
 
   .orders-toolbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .orders-new-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .orders-new-banner button {
+    width: 100%;
   }
 
   .orders-table,

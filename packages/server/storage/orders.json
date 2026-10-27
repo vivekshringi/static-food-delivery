@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "customerNumber": "01212",
+    "items": [
+      {
+        "name": "Extra Pav",
+        "category": "EXTRA",
+        "price": 1.9,
+        "allergens": []
+      },
+      {
+        "name": "Dal Makhni",
+        "category": "ANKER Dal",
+        "price": 15.9,
+        "allergens": []
+      }
+    ],
+    "priceType": "evening",
+    "subtotal": 17.8,
+    "discountPercent": 0,
+    "discountAmount": 0,
+    "total": 17.8,
+    "currency": "EUR",
+    "comment": "i am coming in 10 mins",
+    "time": "2026-10-27T16:44:40.785Z",
+    "payment": {
+      "provider": "paypal",
+      "status": "COMPLETED",
+      "paypalOrderId": "3JN565089J307010V",
+      "captureId": "94U04206XX4611531",
+      "payerEmail": "sb-nqqea51524208@personal.example.com",
+      "paidAt": "2026-10-27T16:44:40.122Z"
+    }
+  }
+]

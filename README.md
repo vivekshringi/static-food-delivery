@@ -37,6 +37,32 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - Server: `http://localhost:4000`
 
+## Design-System
+
+Das Frontend nutzt ein gemeinsames Token-Set in `packages/web/src/styles.css`. Alle Farben,
+Radien, Schatten, Schriftfamilien und Easings liegen als CSS-Variablen in `:root`, sodass sich das
+Erscheinungsbild zentral aendern laesst.
+
+| Baustein | Datei | Inhalt |
+| --- | --- | --- |
+| Basis | `src/styles.css` | Tokens, Hintergrund (Aurora + Grain), Header, Hero, Panels, Buttons, Formulare, Footer, States |
+| Sektionen | `src/showcase.css` | Gerichts-Karussell, Angebote, Menue-Seite, Admin, Impressum, Partner-Logos, Cookie-Dialog, Responsive-Stufen |
+| Bestelloberflaeche | `src/ordering.css` | Chat, Menue-Karte im Chat, Bestell-Tabelle, Zahlungsdetails |
+| Review-Slider | `src/reviews/reviewsSlider.css` | Mapping der Widget-Variablen auf die Seiten-Palette |
+
+Helle, warme Papier-Palette (kein Dark Mode): Grundflaeche `#faf6ee`, Karten `#fffdf9`. Fuer Text auf
+hellem Grund gibt es zu jeder Spice-Farbe eine dunklere Variante (`--chilli-deep`, `--saffron-deep`,
+`--cardamom-deep`), weil der helle Ton nur als Fuellung taugt. Alle Textfarben erreichen mindestens
+4.5:1 Kontrast (WCAG AA), geprueft automatisch ueber alle vier Seiten.
+
+Schriften: **Instrument Serif** fuer Ueberschriften, **Bricolage Grotesque** fuer Fliesstext,
+**JetBrains Mono** fuer Bestell-Codes und Preise. Alle drei kommen von Google Fonts, das in der CSP
+(`GOOGLE_FONT_ORIGINS` in `packages/server/src/index.js`) bereits erlaubt ist.
+
+Bewegung: sanft driftende Farbwaesche im Hintergrund, Hover-Lift auf Panels, Sheen auf dem
+Haupt-Button, gestaffelte Chat-Bubbles, pulsierender Live-Punkt. `prefers-reduced-motion` schaltet alle Animationen ab; kein
+Inhalt haengt von einer Animation ab, um sichtbar zu werden.
+
 ## Signature Dishes (Gerichtsfotos)
 
 Die Fotos im Karussell auf der Home-Seite werden nicht uber das Admin-Formular gepflegt, sondern

@@ -19,17 +19,19 @@
  */
 
 .gr-reviews {
-  /* Site palette, mapped onto the component's own custom properties. */
+  /* Site palette, mapped onto the component's own custom properties. The
+     component derives every text and chip colour from --gr-ink, so overriding
+     it here is enough to make the whole slider work on the dark ground. */
   --gr-bg: transparent;
   --gr-surface: var(--surface);
   --gr-ink: var(--ink);
   --gr-muted: var(--subtle);
-  --gr-line: rgba(29, 31, 36, 0.12);
-  --gr-accent: var(--accent);
-  --gr-star: var(--brand);
-  --gr-radius: var(--radius-xl);
-  --gr-font: "Space Grotesk", sans-serif;
-  --gr-serif: "Fraunces", serif;
+  --gr-line: var(--line);
+  --gr-accent: var(--chilli-deep);
+  --gr-star: #e8a33a;
+  --gr-radius: var(--radius-lg);
+  --gr-font: var(--font-sans);
+  --gr-serif: var(--font-display);
   /* Wider than the full-screen default so the section fills the 1120px shell. */
   --gr-card-w: min(720px, 84vw);
 

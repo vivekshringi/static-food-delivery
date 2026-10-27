@@ -1,4 +1,20 @@
+# Spice Anker — https://spice-anker.de
+#
+# Public pages are crawlable. The admin surfaces and the credential-gated
+# ordering flow are not: /ordernow needs a per-customer chat login, and
+# /admin, /admin/edit and /currentOrders expose customer and payment data.
+# They are also protected server-side; this only keeps them out of the index.
+
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /currentOrders
+Disallow: /ordernow
+Disallow: /api/
+
+# Nothing on this site benefits from an aggressive crawler hammering the
+# ordering endpoints; the public pages are static and cheap to re-read.
+Crawl-delay: 1
 
 Sitemap: https://spice-anker.de/sitemap.xml

@@ -9,6 +9,13 @@
   --gr-ink: #14140f;
   --gr-muted: #6e6c61;
   --gr-line: rgba(20, 20, 15, 0.1);
+  /* Derived tokens so every text colour follows --gr-ink / --gr-muted instead of
+     hardcoding a dark palette. On a light host these resolve to near-black; the
+     host can re-theme the whole card by overriding --gr-ink and --gr-surface. */
+  --gr-ink-soft: color-mix(in srgb, var(--gr-ink) 78%, transparent);
+  --gr-chip-bg: color-mix(in srgb, var(--gr-ink) 7%, transparent);
+  --gr-chip-ink: color-mix(in srgb, var(--gr-ink) 72%, transparent);
+  --gr-shadow: color-mix(in srgb, var(--gr-ink) 45%, transparent);
   --gr-accent: #1a73e8;
   --gr-star: #f2a93b;
   --gr-radius: 26px;
@@ -363,8 +370,8 @@
   border-radius: var(--gr-radius);
   background: var(--gr-surface);
   box-shadow:
-    0 1px 2px rgba(20, 20, 15, 0.04),
-    0 24px 48px -32px rgba(20, 20, 15, 0.45);
+    0 1px 2px var(--gr-chip-bg),
+    0 24px 48px -32px var(--gr-shadow);
   transform: translate3d(0, var(--gr-y, 0px), var(--gr-z, 0px))
     rotateX(var(--gr-rot, 0deg));
   transform-origin: 50% 50%;
@@ -379,8 +386,8 @@
 
 .gr-card.is-active .gr-card__inner {
   box-shadow:
-    0 1px 2px rgba(20, 20, 15, 0.05),
-    0 30px 60px -34px rgba(20, 20, 15, 0.5);
+    0 1px 2px var(--gr-chip-bg),
+    0 30px 60px -34px var(--gr-shadow);
 }
 
 .gr-card::after {
@@ -421,7 +428,7 @@
   font-size: clamp(0.86rem, min(1.5vw, 1.9vh), 1.24rem);
   line-height: 1.55;
   letter-spacing: -0.006em;
-  color: #23231c;
+  color: var(--gr-ink);
   overflow-wrap: anywhere;
 }
 
@@ -656,8 +663,8 @@
   gap: 5px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(20, 20, 15, 0.045);
-  color: #4a4940;
+  background: var(--gr-chip-bg);
+  color: var(--gr-chip-ink);
   font-size: clamp(0.64rem, 1.4vh, 0.74rem);
   font-weight: 500;
   white-space: nowrap;
@@ -688,14 +695,17 @@
   height: 42px;
   border-radius: 50%;
   flex: none;
-  color: #fff;
+  /* Dark initials on the generated hue: the previous white-on-pastel pairing was
+     about 1.8:1, unreadable. Darkening the gradient further and using ink keeps
+     the avatar legible for every hue the hash can produce. */
+  color: var(--gr-ink);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   background: linear-gradient(
     140deg,
-    hsl(var(--h, 210) 62% 62%),
-    hsl(calc(var(--h, 210) + 38) 68% 44%)
+    hsl(var(--h, 210) 70% 78%),
+    hsl(calc(var(--h, 210) + 38) 72% 66%)
   );
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
